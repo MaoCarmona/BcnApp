@@ -1,0 +1,87 @@
+# Archivos de Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Archivos de compilación
+bin/
+obj/
+
+# Paquetes NuGet
+packages/
+*.nupkg
+# Paquetes NuGet descargados
+**/packages/*
+# Paquetes NuGet de usuario
+*.snupkg
+
+# Archivos de publicación
+publish/
+*.Publish.xml
+
+# Archivos temporales
+*.tmp
+*.temp
+*.log
+*.tlog
+*.cache
+*.pdb
+*.dbmdl
+*.bak
+*.Backup
+*.swp
+*.scc
+*.vssscc
+*.vspscc
+*.orig
+*.rej
+*.sdf
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Archivos de configuración de IIS Express
+/.vs/
+/IISExpress/
+
+# Archivos de bases de datos locales
+*.mdf
+*.ldf
+*.ndf
+
+# Archivos de configuración de usuario
+*.DotSettings.user
+
+# Archivos de logs
+*.log
+App_Data/logs/
+
+# Archivos de configuración de Rider
+.idea/
+*.iml
+
+# Archivos de configuración de JetBrains
+*.DotSettings
+
+# Archivos de configuración de Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# Archivos de configuración de CodeRush
+.cr/
+
+# Archivos de configuración de SonarQube
+.sonar/
+
+# Archivos de configuración de Azure
+*.azure*
+
+# Otros
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+DotNetBcnModule.Presentation/App_Data/logs/appBCN.log

@@ -1,0 +1,2769 @@
+﻿@{
+    ViewBag.Title = "BCN Integration Module";
+    var today = DateTime.Now.ToString("yyyy-MM-dd");
+    var yesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
+    var lastMonth = DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd");
+    var currentMonth = DateTime.Now.ToString("MMMM yyyy");
+    var currentDay = DateTime.Now.Day;
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="/Content/IntegrationCustom.css">
+
+<div class="container-fluid fullscreen">
+    <div class="main-row">
+        <!-- Panel Izquierdo -->
+        <div class="sidebar" id="sidebarMenu">
+            <!-- Botón de toggle para colapsar/expandir el menú -->
+            <div class="sidebar-header">
+                <button id="toggleSidebar" class="btn btn-outline-primary btn-sm sidebar-toggle" title="Colapsar menú" data-bs-toggle="tooltip" data-bs-placement="left">
+                    <i class="bi bi-list"></i>
+                </button>
+                <span class="sidebar-title">Configuración BCN</span>
+            </div>
+
+            <!-- Filtros de fecha mejorados -->
+            <div class="sidebar-filtros">
+                <h6 class="mb-3"><i class="bi bi-calendar3"></i> Área de visualización de datos</h6>
+                <div class="mb-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-6">
+                            <label for="dateFrom" class="form-label mb-1">Inicio <small class="text-muted">(00:00)</small></label>
+                            <input type="date" id="dateFrom" class="form-control form-control-sm" value="@today" max="@today">
+                        </div>
+                        <div class="col-6">
+                            <label for="dateTo" class="form-label mb-1">Fin <small class="text-muted">(23:59)</small></label>
+                            <input type="date" id="dateTo" class="form-control form-control-sm" value="@today" min="@today" max="@today">
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-6">
+                            <button class="btn btn-sm btn-secondary w-100 btn-fecha" id="btnPrev">
+                                <i class="bi bi-chevron-left"></i> Día anterior
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-sm btn-secondary w-100 btn-fecha" id="btnNext">
+                                Día siguiente <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Título de sección mejorado -->
+            <div class="section-title">
+                <i class="bi bi-building"></i> BCN
+            </div>
+
+            <!-- Menú de submódulos mejorado -->
+            <div class="sidebar-menu-scroll">
+                <div class="accordion" id="menuAccordion">
+                    <!-- Integrar Información (abierto por defecto) -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingIntegrar">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseIntegrar" aria-expanded="true" aria-controls="collapseIntegrar">
+                                <i class="bi bi-download me-2"></i> Integrar Información
+                            </button>
+                        </h2>
+                        <div id="collapseIntegrar" class="accordion-collapse collapse show" aria-labelledby="headingIntegrar" data-bs-parent="#menuAccordion">
+                            <div class="accordion-body p-2">
+                                <ul class="mb-3">
+                                    <li><span class="submodule-link" data-type="integrar" data-option="01"><i class="bi bi-database-fill-check"></i> AORA: Inventario operativo</span></li>
+                                    <li><span class="submodule-link" data-type="integrar" data-option="02"><i class="bi bi-arrow-left-right"></i> AORA: Movimientos operativo</span></li>
+                                    <li><span class="submodule-link" data-type="integrar" data-option="03"><i class="bi bi-water"></i> AORA: Flujos operativo</span></li>
+                                    <li><span class="submodule-link" data-type="integrar" data-option="04"><i class="bi bi-database-fill-check"></i> ROMSS: Inventario operativo</span></li>
+                                    <li><span class="submodule-link" data-type="integrar" data-option="05"><i class="bi bi-arrow-left-right"></i> ROMSS: Movimientos operativo</span></li>
+                                    <li><span class="submodule-link" data-type="integrar" data-option="06"><i class="bi bi-camera"></i> BCN: Foto inventario operativo</span></li>
+                                    <li><span class="submodule-link" data-type="integrar" data-option="08"><i class="bi bi-calculator"></i> BCN: Balance operativo</span></li>
+                                    @* <li><span class="submodule-link" data-type="integrar" data-option="07"><i class="bi bi-arrow-left-right"></i> BCN: Movimientos</span></li>
+                                    <li><span class="submodule-link" data-type="integrar" data-option="09"><i class="bi bi-truck"></i> WebService: Movimientos logísticos</span></li> *@
+                                    <li><span class="submodule-link" data-type="integrar" data-option="10"><i class="bi bi-server"></i> ARES: Movimientos HPI</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Consolidar Información -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingConsolidar">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseConsolidar" aria-expanded="false" aria-controls="collapseConsolidar">
+                                <i class="bi bi-layers me-2"></i> Consolidar Información
+                            </button>
+                        </h2>
+                        <div id="collapseConsolidar" class="accordion-collapse collapse" aria-labelledby="headingConsolidar" data-bs-parent="#menuAccordion">
+                            <div class="accordion-body p-2">
+                                <ul class="mb-3">
+                                    <li><span class="submodule-link" data-type="consolidar" data-option="01"><i class="bi bi-stack"></i> BCN: Inventarios</span></li>
+                                    <li><span class="submodule-link" data-type="consolidar" data-option="02"><i class="bi bi-arrow-left-right"></i> BCN: Movimientos</span></li>
+                                    <li><span class="submodule-link" data-type="consolidar" data-option="03"><i class="bi bi-building"></i> BCN: Balance ALMACEN</span></li>
+                                    <li><span class="submodule-link" data-type="consolidar" data-option="04"><i class="bi bi-collection"></i> BCN: Balance POOL</span></li>
+                                    <li><span class="submodule-link" data-type="consolidar" data-option="05"><i class="bi bi-gear"></i> BCN: Balance UNIDAD DE PROCESO</span></li>
+                                    <li><span class="submodule-link" data-type="consolidar" data-option="06"><i class="bi bi-camera"></i> BCN: Foto inventario</span></li>
+                                    <li><span class="submodule-link" data-type="consolidar" data-option="07"><i class="bi bi-calculator"></i> BCN: Aplicar Regla de Balance</span></li>
+                                    <li><span class="submodule-link" data-type="consolidar" data-option="08"><i class="bi bi-graph-down"></i> BCN: Diferencia Balance</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Transformación Logística -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingLogistica">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLogistica" aria-expanded="false" aria-controls="collapseLogistica">
+                                <i class="bi bi-truck me-2"></i> Transformación Logística
+                            </button>
+                        </h2>
+                        <div id="collapseLogistica" class="accordion-collapse collapse" aria-labelledby="headingLogistica" data-bs-parent="#menuAccordion">
+                            <div class="accordion-body p-2">
+                                <ul class="mb-3">
+                                    <li><span class="submodule-link" data-type="logistica" data-option="01"><i class="bi bi-arrow-left-right"></i> Movimientos logísticos</span></li>
+                                    <li><span class="submodule-link" data-type="logistica" data-option="02"><i class="bi bi-cash-coin"></i> Movimientos de costos</span></li>
+                                    <li><span class="submodule-link" data-type="logistica" data-option="03"><i class="bi bi-bank"></i> Balance GRB CeLo: 2000</span></li>
+                                    <li><span class="submodule-link" data-type="logistica" data-option="04"><i class="bi bi-arrow-repeat"></i> Balance Reexpido CeLo: 3501</span></li>
+                                    <li><span class="submodule-link" data-type="logistica" data-option="05"><i class="bi bi-speedometer2"></i> Balance Impala CeLo: 4130</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Envío BCN WS-ARES -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingAres">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAres" aria-expanded="false" aria-controls="collapseAres">
+                                <i class="bi bi-send me-2"></i> Envío BCN WS-ARES
+                            </button>
+                        </h2>
+                        <div id="collapseAres" class="accordion-collapse collapse" aria-labelledby="headingAres" data-bs-parent="#menuAccordion">
+                            <div class="accordion-body p-2">
+                                <ul class="mb-3">
+                                    <li><span class="submodule-link" data-type="ares" data-option="01"><i class="bi bi-stack"></i> Inventario logístico</span></li>
+                                    <li><span class="submodule-link" data-type="ares" data-option="02"><i class="bi bi-arrow-left-right"></i> Movimiento logístico</span></li>
+                                    <li><span class="submodule-link" data-type="ares" data-option="03"><i class="bi bi-cash-coin"></i> Movimiento de costos</span></li>
+                                    <li><span class="submodule-link" data-type="ares" data-option="04"><i class="bi bi-eye"></i> Rev. Procesamiento Logistico</span></li>
+                                    <li><span class="submodule-link" data-type="ares" data-option="05"><i class="bi bi-eye"></i> Rev. Procesamiento Costo</span></li>
+                                    <li><span class="submodule-link" data-type="ares" data-option="06"><i class="bi bi-eye"></i> Rev. Comparativo Inventario</span></li>
+                                    <li><span class="submodule-link" data-type="ares" data-option="07"><i class="bi bi-eye"></i> Rev. Comparativo Costos</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                     <!-- Configuration -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingConfig">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseConfig" aria-expanded="false" aria-controls="collapseConfig">
+                                <i class="bi bi-gear me-2"></i> Configuración
+                            </button>
+                        </h2>
+                        <div id="collapseConfig" class="accordion-collapse collapse" aria-labelledby="headingConfig" data-bs-parent="#menuAccordion">
+                            <div class="accordion-body p-2">
+                                <ul class="mb-3">
+                                    <li><span id="config-link" class="submodule-link" style="cursor: pointer;"><i class="bi bi-key"></i> Gestionar Credenciales</span></li>
+                                    <li><span id="config-homologacion" class="submodule-link" style="cursor: pointer;"><i class="bi bi-check2-square"></i> Configuración Homologación</span></li>
+                                    <li><span id="config-forzamiento" class="submodule-link" style="cursor: pointer;"><i class="bi bi-arrow-repeat"></i> Configuración de Forzamiento y Consolidación</span></li>
+                                    <li><span id="config-reglas" class="submodule-link" style="cursor: pointer;"><i class="bi bi-diagram-3"></i> Configuración de Reglas de Balance</span></li>
+                                    <li><span id="config-logistica" class="submodule-link" style="cursor: pointer;"><i class="bi bi-truck"></i> Configuración de Movimientos Logísticos</span></li>
+                                    <li><span id="config-costos" class="submodule-link" style="cursor: pointer;"><i class="bi bi-cash-coin"></i> Configuración de Movimientos de Costos</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendario mejorado -->
+            <div class="sidebar-calendario">
+                <table class="mini-calendar">
+                    <thead>
+                        <tr><th colspan="7"><i class="bi bi-calendar3"></i> @currentMonth</th></tr>
+                        <tr><th>L</th><th>M</th><th>X</th><th>J</th><th>V</th><th>S</th><th>D</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td></td><td></td><td></td><td></td><td></td><td>1</td><td>2</td></tr>
+                        <tr><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td></tr>
+                        <tr><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td><td>15</td><td>16</td></tr>
+                        <tr><td>17</td><td>18</td><td>19</td><td>20</td><td>21</td><td>22</td><td>23</td></tr>
+                        <tr><td>24</td><td>25</td><td>26</td><td>27</td><td>28</td><td>29</td><td class="today">@currentDay</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+        <!-- Panel Central -->
+        <div class="content-area" id="mainContent">
+            <!-- Barra de herramientas mejorada -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-primary btn-lg fw-bold" id="executeBtn" title="Ejecutar" viewIntegrar="false" data-bs-toggle="tooltip">
+                        <i class="bi bi-play-circle"></i>
+                    </button>
+                    <button class="btn btn-info btn-lg fw-bold" id="integrarViewBtn" title="Ver información integrada" viewIntegrar="true" data-bs-toggle="tooltip" style="display: none;">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-danger btn-lg fw-bold" id="cancelBtn" title="Cancelar" data-bs-toggle="tooltip" style="display: none;">
+                        <i class="bi bi-stop-circle"></i>
+                    </button>
+                    @* <button class="btn btn-light border" title="Guardar" data-bs-toggle="tooltip">
+                        <i class="bi bi-floppy2"></i>
+                    </button>
+                    <button class="btn btn-light border" title="Actualizar" data-bs-toggle="tooltip">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    <button class="btn btn-light border" title="Confirmar" data-bs-toggle="tooltip">
+                        <i class="bi bi-check2-circle"></i>
+                    </button> *@
+                    <div class="vr"></div>
+                    
+                    <button class="btn btn-light border" onclick="printGrid()" title="Imprimir" data-bs-toggle="tooltip">
+                        <i class="bi bi-printer"></i>
+                    </button>
+                    <div class="vr"></div>
+                    <button class="btn btn-light border" onclick="exportGridToExcel()" title="Exportar Excel" data-bs-toggle="tooltip">
+                        <i class="bi bi-file-earmark-excel"></i>
+                    </button>
+                    
+                    
+                    <!-- Botones de selección para ARES -->
+                    <div id="aresSelectionControls" style="display: none;">
+                        <button class="btn btn-outline-primary btn-sm" onclick="selectAllAresData()" title="Seleccionar todo">
+                            <i class="bi bi-check-all"></i> Seleccionar todo
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="deselectAllAresData()" title="Deseleccionar todo">
+                            <i class="bi bi-x-lg"></i> Deseleccionar todo
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="sendSelectedToAres()" title="Enviar seleccionados a ARES">
+                            <i class="bi bi-send"></i> Enviar a ARES
+                        </button>
+                    </div>
+                    
+                    
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="input-group" style="max-width: 300px;">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text"
+                               class="form-control border-start-0"
+                               id="searchTable"
+                               placeholder="Buscar en tabla..."
+                               style="box-shadow: none;">
+                        <button class="btn btn-outline-secondary"
+                                type="button"
+                                id="clearSearch"
+                                title="Limpiar búsqueda">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress indicator -->
+            <div id="progressIndicator" class="no-data-message info" style="display: none;">
+                <i class="bi bi-hourglass-split"></i>
+                <h5>Ejecutando operación</h5>
+                <p id="progressMessage">Ejecutando operación...</p>
+                <div class="progress mt-3" style="height: 6px; background-color: rgba(255,255,255,0.3); border-radius: 3px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" 
+                         style="width: 100%; background-color: var(--ecopetrol-verde); border-radius: 3px;"></div>
+                </div>
+                <small>
+                    <i class="bi bi-info-circle me-1"></i>
+                    Por favor espere mientras se procesa su solicitud...
+                </small>
+            </div>
+
+            <!-- Tabla tipo Excel mejorada -->
+            <div class="table-responsive fixed-height">
+                <table class="table table-bordered table-sm excel-table" id="mainGrid">
+                    <thead id="mainGridHeader">
+                        <!-- Las columnas se generarán dinámicamente cuando se ejecute una consulta -->
+                    </thead>
+                    <tbody id="mainGridBody">
+                        <tr>
+                            <td class="text-center py-5">
+                                <div class="no-data-message info">
+                                    <i class="bi bi-arrow-left"></i>
+                                    <h5>Seleccione un submódulo para consultar</h5>
+                                    <p>Elija una opción del panel lateral para comenzar</p>
+                                    <small>
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Utilice el menú de la izquierda para navegar entre las diferentes opciones disponibles.
+                                    </small>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Área de paginación -->
+            <div id="paginationContainer" class="d-flex justify-content-between align-items-center mt-2 " style="display: none;">
+                <div>
+                    <label for="pageSizeSelect" class="form-label me-2">Mostrar:</label>
+                    <select id="pageSizeSelect" class="form-select form-select-sm d-inline-block" style="width: auto;">
+                        <option value="10">10</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="-1">Todos</option>
+                    </select>
+                </div>
+                <div id="paginationInfo"></div>
+                <div id="paginationControls" class="mb-0"></div>
+            </div>
+
+            <!-- Leyenda mejorada -->
+            <div class="leyenda">
+                <div class="d-flex flex-wrap gap-3">
+                    <span><i class="bi bi-circle-fill text-danger"></i> Error</span>
+                    <span><i class="bi bi-circle-fill text-warning"></i> Sin Enviar</span>
+                    <span><i class="bi bi-circle-fill text-success"></i> Enviado</span>
+                    <span><i class="bi bi-circle-fill text-primary"></i> NO ENVIADO Y REGISTRADO EN SAP</span>
+                    <span><i class="bi bi-circle-fill text-success"></i> Enviado OK</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para selección de fecha -->
+<div class="modal fade" id="dateSelectionModal" tabindex="-1" aria-labelledby="dateSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dateSelectionModalLabel">Selección de Fecha</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Qué fecha desea utilizar para la consulta?</p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="dateSelection" id="initialDate" value="true">
+                    <label class="form-check-label" for="initialDate">
+                        <strong>Inventario Inicial:</strong> <span id="initialDateValue"></span>
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="dateSelection" id="finalDate" value="false" checked>
+                    <label class="form-check-label" for="finalDate">
+                        <strong>Inventario Final:</strong> <span id="finalDateValue"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmDateSelection">Confirmar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para mostrar JSON -->
+<div class="modal fade" id="jsonModal" tabindex="-1" aria-labelledby="jsonModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jsonModalLabel">JSON de Movimiento Logístico</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Cadena de Texto del JSON de Movimiento Logístico</p>
+                <pre id="jsonContent" style="max-height: 500px; overflow-y: auto; background-color: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                @* <button type="button" class="btn btn-primary" id="copyJsonBtn">Copiar JSON</button> *@
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Definir rutas absolutas usando Razor para que funcionen en cualquier contexto
+        const ecopetrolLogo = '@Url.Content("~/assets/ecopetrol.png")';
+        const aresLogo = '@Url.Content("~/assets/ares.png")';
+        
+        $(document).ready(function () {
+            // Variables para manejo de fechas
+            let dateFromInput = document.getElementById('dateFrom');
+            let dateToInput = document.getElementById('dateTo');
+
+            // Función para validar y ajustar fechas
+            function validateAndAdjustDates() {
+                let fromDate = new Date(dateFromInput.value);
+                let toDate = new Date(dateToInput.value);
+                
+                // Validar que las fechas sean válidas
+                if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+                    return;
+                }
+                
+                // Si la fecha de fin es menor a la fecha de inicio, ajustar
+                if (toDate < fromDate) {
+                    toDate = new Date(fromDate);
+                    dateToInput.value = toDate.toISOString().slice(0, 10);
+                    
+                    // Mostrar notificación visual temporal
+                    showDateValidationMessage('La fecha de fin se ha ajustado automáticamente a la fecha de inicio');
+                }
+                
+                // Actualizar el atributo min de la fecha de fin
+                dateToInput.min = dateFromInput.value;
+                
+                // Actualizar el atributo max de la fecha de inicio (no puede ser mayor a la fecha de fin)
+                dateFromInput.max = dateToInput.value;
+            }
+
+            // Función para mostrar mensaje de validación temporal
+            function showDateValidationMessage(message) {
+                // Crear o actualizar el mensaje de validación
+                let validationMessage = document.getElementById('dateValidationMessage');
+                if (!validationMessage) {
+                    validationMessage = document.createElement('div');
+                    validationMessage.id = 'dateValidationMessage';
+                    validationMessage.className = 'alert alert-info alert-sm mt-2';
+                    validationMessage.style.fontSize = '0.75rem';
+                    validationMessage.style.padding = '0.5rem';
+                    
+                    // Insertar después de los inputs de fecha
+                    const dateInputsContainer = dateFromInput.closest('.row');
+                    dateInputsContainer.parentNode.insertBefore(validationMessage, dateInputsContainer.nextSibling);
+                }
+                
+                validationMessage.innerHTML = `<i class="bi bi-info-circle me-1"></i>${message}`;
+                validationMessage.style.display = 'block';
+                
+                // Ocultar después de 3 segundos
+                setTimeout(() => {
+                    validationMessage.style.display = 'none';
+                }, 3000);
+            }
+
+            // Event listeners para validación de fechas
+            dateFromInput.addEventListener('change', function() {
+                // Actualizar automáticamente la fecha de fin para que sea igual a la fecha de inicio
+                dateToInput.value = this.value;
+                validateAndAdjustDates();
+            });
+
+            dateToInput.addEventListener('change', function() {
+                validateAndAdjustDates();
+            });
+
+            // Inicializar validación al cargar la página
+            validateAndAdjustDates();
+            
+            // Validación adicional para fechas futuras
+            function validateFutureDates() {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Resetear a inicio del día
+                
+                const fromDate = new Date(dateFromInput.value);
+                const toDate = new Date(dateToInput.value);
+                
+                if (fromDate > today) {
+                    dateFromInput.value = today.toISOString().slice(0, 10);
+                    showDateValidationMessage('La fecha de inicio no puede ser futura. Se ha ajustado a hoy.');
+                }
+                
+                if (toDate > today) {
+                    dateToInput.value = today.toISOString().slice(0, 10);
+                    showDateValidationMessage('La fecha de fin no puede ser futura. Se ha ajustado a hoy.');
+                }
+                
+                validateAndAdjustDates();
+            }
+            
+            // Aplicar validación de fechas futuras también
+            dateFromInput.addEventListener('change', validateFutureDates);
+            dateToInput.addEventListener('change', validateFutureDates);
+            
+            // Función para actualizar estado de botones de navegación
+            function updateNavigationButtons() {
+                const btnPrev = document.getElementById('btnPrev');
+                const btnNext = document.getElementById('btnNext');
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const fromDate = new Date(dateFromInput.value);
+                const toDate = new Date(dateToInput.value);
+                
+                // El botón "Día anterior" siempre está habilitado
+                // Solo se deshabilita si ambas fechas son el día más antiguo posible (ej: 1900-01-01)
+                const minDate = new Date('1900-01-01');
+                if (fromDate <= minDate && toDate <= minDate) {
+                    btnPrev.disabled = true;
+                    btnPrev.classList.add('disabled');
+                } else {
+                    btnPrev.disabled = false;
+                    btnPrev.classList.remove('disabled');
+                }
+                
+                // Deshabilitar botón "Día siguiente" solo si la fecha de fin es hoy o posterior
+                // porque no se puede ir al futuro
+                if (toDate >= today) {
+                    btnNext.disabled = true;
+                    btnNext.classList.add('disabled');
+                } else {
+                    btnNext.disabled = false;
+                    btnNext.classList.remove('disabled');
+                }
+            }
+            
+            // Aplicar actualización de botones en las validaciones
+            const originalValidateFutureDates = validateFutureDates;
+            validateFutureDates = function() {
+                originalValidateFutureDates();
+                updateNavigationButtons();
+            };
+            
+            // Inicializar estado de botones
+            updateNavigationButtons();
+
+            // Botones de fechas rápidas
+            document.getElementById('btnPrev').onclick = function () {
+                let fromDate = new Date(dateFromInput.value);
+                let toDate = new Date(dateToInput.value);
+                fromDate.setDate(fromDate.getDate() - 1); // Solo 1 día atrás
+                toDate.setDate(toDate.getDate() - 1);     // Solo 1 día atrás
+                dateFromInput.value = fromDate.toISOString().slice(0, 10);
+                dateToInput.value = toDate.toISOString().slice(0, 10);
+                validateFutureDates(); // Usar la función completa que incluye validación de fechas futuras
+            };
+            document.getElementById('btnNext').onclick = function () {
+                let fromDate = new Date(dateFromInput.value);
+                let toDate = new Date(dateToInput.value);
+                fromDate.setDate(fromDate.getDate() + 1); // Solo 1 día adelante
+                toDate.setDate(toDate.getDate() + 1);     // Solo 1 día adelante
+                dateFromInput.value = fromDate.toISOString().slice(0, 10);
+                dateToInput.value = toDate.toISOString().slice(0, 10);
+                validateFutureDates(); // Usar la función completa que incluye validación de fechas futuras
+            };
+
+            let lastGridData = [];
+            let lastGridColumns = [];
+            let lastGridTitle = '';
+
+            function renderGrid(columns, data, title) {
+                console.log('renderGrid called with:', { columns, dataLength: data?.length, title });
+
+                lastGridData = data || [];
+                lastGridColumns = columns || [];
+                lastGridTitle = title || 'NOMBRE DE INTERFASE DE VISUALIZACIÓN';
+                
+                const header = document.getElementById('mainGridHeader');
+                const body = document.getElementById('mainGridBody');
+
+                if (!header || !body) {
+                    console.error('Header or body elements not found');
+                    return;
+                }
+
+                header.innerHTML = '';
+                body.innerHTML = '';
+
+                // Header
+                const headerRow1 = document.createElement('tr');
+                const thTitle = document.createElement('th');
+                thTitle.colSpan = selectedType === 'ares' ? columns.length + 1 : columns.length;
+                thTitle.className = 'main-title';
+                thTitle.id = 'mainGridTitle';
+                thTitle.textContent = lastGridTitle;
+                headerRow1.appendChild(thTitle);
+                header.appendChild(headerRow1);
+
+                const headerRow2 = document.createElement('tr');
+                
+                // Agregar columna de checkbox para ARES
+                if (selectedType === 'ares') {
+                    const thCheckbox = document.createElement('th');
+                    thCheckbox.innerHTML = '<input type="checkbox" id="selectAllCheckbox" class="form-check-input">';
+                    thCheckbox.style.width = '40px';
+                    thCheckbox.style.textAlign = 'center';
+                    headerRow2.appendChild(thCheckbox);
+                }
+                
+                columns.forEach(col => {
+                    const th = document.createElement('th');
+                    th.textContent = col;
+                    headerRow2.appendChild(th);
+                });
+                header.appendChild(headerRow2);
+
+                // Data
+                if (!data || data.length === 0) {
+                    console.log('No data to render');
+                    const colspan = selectedType === 'ares' ? columns.length + 1 : columns.length;
+                    body.innerHTML = '<tr><td colspan="' + colspan + '" class="text-center text-muted"><i class="bi bi-inbox"></i> No hay datos para mostrar</td></tr>';
+                    return;
+                }
+
+                for (let i = 0; i < data.length; i++) {
+                    const row = data[i];
+                    const tr = document.createElement('tr');
+                    
+                    // Agregar checkbox para ARES
+                    if (selectedType === 'ares') {
+                        const tdCheckbox = document.createElement('td');
+                        tdCheckbox.style.textAlign = 'center';
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'form-check-input ares-checkbox';
+                        // Usar el índice real en data, no en el índice del bucle
+                        checkbox.value = i;
+                        
+                        // Sincronizar el estado del checkbox con la selección global
+                        if (selectedAresData.has(checkbox.value)) {
+                            checkbox.checked = true;
+                        }
+                        
+                        checkbox.addEventListener('change', function() {
+                            if (this.checked) {
+                                selectedAresData.add(this.value);
+                            } else {
+                                selectedAresData.delete(this.value);
+                            }
+                            updateAresSelectionCount();
+                        });
+                        tdCheckbox.appendChild(checkbox);
+                        tr.appendChild(tdCheckbox);
+                    }
+                    
+                    columns.forEach(col => {
+                        const td = document.createElement('td');
+                        // Always show a cell for every column, even if the value is blank
+                        let value = row[col];
+                        if (value === undefined || value === null) value = '';
+                        
+                        // Manejo especial para la columna Json Movimientos
+                        if (col === 'Json Movimientos' && value) {
+                            const button = document.createElement('button');
+                            button.className = 'btn btn-sm btn-outline-primary';
+                            button.textContent = 'Ver JSON';
+                            button.onclick = function() {
+                                showJsonModal(value);
+                            };
+                            td.appendChild(button);
+                        } else {
+                            td.textContent = value;
+                        }
+                        tr.appendChild(td);
+                    });
+                    body.appendChild(tr);
+                }
+
+                // Configurar checkbox "Seleccionar todo" para ARES
+                if (selectedType === 'ares') {
+                    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.addEventListener('change', function() {
+                            if (this.checked) {
+                                // Seleccionar TODOS los registros filtrados, no solo los de la página actual
+                                selectedAresData.clear();
+                                for (let i = 0; i < filteredGridData.length; i++) {
+                                    selectedAresData.add(i.toString());
+                                }
+                                // Marcar todos los checkboxes visibles
+                                const checkboxes = document.querySelectorAll('.ares-checkbox');
+                                checkboxes.forEach(checkbox => {
+                                    checkbox.checked = true;
+                                });
+                            } else {
+                                // Deseleccionar todos
+                                selectedAresData.clear();
+                                const checkboxes = document.querySelectorAll('.ares-checkbox');
+                                checkboxes.forEach(checkbox => {
+                                    checkbox.checked = false;
+                                });
+                            }
+                            updateAresSelectionCount();
+                        });
+                    }
+                    
+                    // Actualizar el estado del checkbox principal después de renderizar
+                    updateSelectAllCheckboxState();
+                    // Sincronizar los checkboxes visibles con el estado global
+                    setTimeout(() => syncVisibleCheckboxes(), 100);
+                }
+            }
+
+            // --- GLOBALS FOR SELECTION ---
+            let selectedOption = '';
+            let selectedType = '';
+
+            // Submodule selection: only highlight and store selection
+            document.querySelectorAll('.submodule-link').forEach(link => {
+                link.addEventListener('click', function () {
+                    document.querySelectorAll('.submodule-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedOption = this.getAttribute('data-option');
+                    selectedType = this.getAttribute('data-type');
+                    
+                    // Limpiar la sección de datos cuando se cambie de módulo
+                    clearDataSection();
+                    
+                    // Mostrar/ocultar controles de selección ARES
+                    const aresControls = document.getElementById('aresSelectionControls');
+                    if (selectedType === 'ares') {
+                        aresControls.style.display = 'block';
+                    } else {
+                        aresControls.style.display = 'none';
+                    }
+                    
+                    // Mostrar/ocultar botón de Ver Información Integrada
+                    const integrarViewBtn = document.getElementById('integrarViewBtn');
+                    if (selectedType === 'integrar') {
+                        integrarViewBtn.style.display = 'inline-block';
+                    } else {
+                        integrarViewBtn.style.display = 'none';
+                    }
+                    
+                    // Inhabilitar botón de ejecutar para opciones que solo permiten visualización
+                    const executeBtn = document.getElementById('executeBtn');
+                    if (selectedType === 'integrar' && selectedOption === '08') {
+                        // Opción #8: BCN: Balance operativo - solo visualización
+                        executeBtn.disabled = true;
+                        executeBtn.title = 'Esta opción solo permite visualización';
+                        executeBtn.classList.add('btn-secondary');
+                        executeBtn.classList.remove('btn-primary');
+                    } else {
+                        // Habilitar botón de ejecutar para otras opciones
+                        executeBtn.disabled = false;
+                        executeBtn.title = 'Ejecutar';
+                        executeBtn.classList.remove('btn-secondary');
+                        executeBtn.classList.add('btn-primary');
+                    }
+                    
+                    // Asegurar que la paginación esté oculta después de limpiar
+                    setTimeout(() => {
+                        const paginationContainer = document.getElementById('paginationContainer');
+                        if (paginationContainer) {
+                            paginationContainer.style.display = 'none';
+                        }
+                    }, 100);
+                });
+            });
+
+            // Función para limpiar la sección de datos
+            function clearDataSection() {
+                const header = document.getElementById('mainGridHeader');
+                const body = document.getElementById('mainGridBody');
+                const paginationContainer = document.getElementById('paginationContainer');
+                const paginationInfo = document.getElementById('paginationInfo');
+                const paginationControls = document.getElementById('paginationControls');
+                
+                // Limpiar header y body de la tabla
+                if (header) header.innerHTML = '';
+                if (body) body.innerHTML = '';
+                
+                // Ocultar paginación y limpiar su contenido
+                if (paginationContainer) {
+                    paginationContainer.style.display = 'none';
+                }
+                if (paginationInfo) {
+                    paginationInfo.innerHTML = '';
+                }
+                if (paginationControls) {
+                    paginationControls.innerHTML = '';
+                }
+                
+                // Limpiar variables globales
+                lastGridData = [];
+                lastGridColumns = [];
+                lastGridTitle = '';
+                originalGridData = [];
+                filteredGridData = [];
+                currentSearchTerm = '';
+                columnFilters = {};
+                currentPage = 1;
+                pageSize = 10; // Resetear el tamaño de página por defecto
+                selectedAresData.clear();
+                
+                // Limpiar búsqueda
+                const searchInput = document.getElementById('searchTable');
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+                
+                // Limpiar filtros de columna
+                document.querySelectorAll('.column-filter').forEach(input => {
+                    input.value = '';
+                });
+                
+                // Resetear el selector de tamaño de página
+                const pageSizeSelect = document.getElementById('pageSizeSelect');
+                if (pageSizeSelect) {
+                    pageSizeSelect.value = '10';
+                }
+                
+                // Mostrar mensaje de selección
+                if (body) {
+                    body.innerHTML = `
+                        <tr>
+                            <td class="text-center py-5">
+                                <div class="no-data-message info">
+                                    <i class="bi bi-arrow-left"></i>
+                                    <h5>Seleccione un submódulo para consultar</h5>
+                                    <p>Elija una opción del panel lateral para comenzar</p>
+                                    <small>
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Utilice el menú de la izquierda para navegar entre las diferentes opciones disponibles.
+                                    </small>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                // Crear header básico
+                if (header) {
+                    const headerRow = document.createElement('tr');
+                    const thTitle = document.createElement('th');
+                    thTitle.colSpan = 1;
+                    thTitle.className = 'main-title';
+                    thTitle.id = 'mainGridTitle';
+                    thTitle.textContent = 'SELECCIONA UN MÓDULO PARA VISUALIZAR DATOS';
+                    headerRow.appendChild(thTitle);
+                    header.appendChild(headerRow);
+                }
+            }
+
+            // Variables para manejo de selección ARES
+            let selectedAresData = new Set();
+
+            // Función para seleccionar todos los datos ARES
+            function selectAllAresData() {
+                selectedAresData.clear();
+                // Seleccionar TODOS los registros filtrados, no solo los de la página actual
+                for (let i = 0; i < filteredGridData.length; i++) {
+                    selectedAresData.add(i.toString());
+                }
+                // Marcar todos los checkboxes visibles
+                document.querySelectorAll('.ares-checkbox').forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+                // Marcar también el checkbox principal
+                const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = true;
+                }
+                updateAresSelectionCount();
+            }
+
+            // Función para deseleccionar todos los datos ARES
+            function deselectAllAresData() {
+                selectedAresData.clear();
+                // Deseleccionar todos los checkboxes visibles
+                document.querySelectorAll('.ares-checkbox').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                // Deseleccionar también el checkbox principal
+                const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                }
+                updateAresSelectionCount();
+            }
+
+            // Función para actualizar contador de selección
+            function updateAresSelectionCount() {
+                const sendButton = document.querySelector('button[onclick="sendSelectedToAres()"]');
+                if (sendButton) {
+                    const count = selectedAresData.size;
+                    sendButton.innerHTML = `<i class="bi bi-send"></i> Enviar a ARES (${count})`;
+                }
+                
+                // Actualizar el estado del checkbox principal
+                updateSelectAllCheckboxState();
+            }
+            
+            // Función para actualizar el estado del checkbox principal
+            function updateSelectAllCheckboxState() {
+                const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                if (selectAllCheckbox && filteredGridData && filteredGridData.length > 0) {
+                    const totalRecords = filteredGridData.length;
+                    const selectedCount = selectedAresData.size;
+                    
+                    if (selectedCount === 0) {
+                        selectAllCheckbox.checked = false;
+                        selectAllCheckbox.indeterminate = false;
+                    } else if (selectedCount === totalRecords) {
+                        selectAllCheckbox.checked = true;
+                        selectAllCheckbox.indeterminate = false;
+                    } else {
+                        selectAllCheckbox.checked = false;
+                        selectAllCheckbox.indeterminate = true;
+                    }
+                    
+                    // Debug: mostrar en consola el estado actual
+                    console.log(`Checkbox principal: total=${totalRecords}, seleccionados=${selectedCount}, checked=${selectAllCheckbox.checked}, indeterminate=${selectAllCheckbox.indeterminate}`);
+                }
+            }
+            
+            // Función para sincronizar todos los checkboxes visibles con el estado global
+            function syncVisibleCheckboxes() {
+                if (selectedType === 'ares') {
+                    const checkboxes = document.querySelectorAll('.ares-checkbox');
+                    checkboxes.forEach(checkbox => {
+                        const isSelected = selectedAresData.has(checkbox.value);
+                        if (checkbox.checked !== isSelected) {
+                            checkbox.checked = isSelected;
+                        }
+                    });
+                    
+                    // Debug: mostrar en consola el estado de sincronización
+                    console.log(`Sincronizando checkboxes visibles: ${checkboxes.length} checkboxes, ${selectedAresData.size} seleccionados globalmente`);
+                }
+            }
+
+            // Función para enviar datos seleccionados a ARES
+            async function sendSelectedToAres() {
+                if (selectedAresData.size === 0) {
+                    alert('Seleccione al menos un registro para enviar a ARES.');
+                    return;
+                }
+
+                if (!selectedOption || selectedType !== 'ares') {
+                    alert('Debe seleccionar una opción ARES válida.');
+                    return;
+                }
+
+                const confirmed = confirm(`¿Está seguro de enviar ${selectedAresData.size} registros seleccionados a ARES?`);
+                if (!confirmed) return;
+
+                try {
+                    // Obtener los datos seleccionados usando los índices reales de filteredGridData
+                    const selectedRows = [];
+                    selectedAresData.forEach(indexStr => {
+                        const rowIndex = parseInt(indexStr);
+                        if (filteredGridData[rowIndex]) {
+                            selectedRows.push(filteredGridData[rowIndex]);
+                        }
+                    });
+
+                    // Mapear datos según el tipo de ARES
+                    let mappedData = [];
+                    switch (selectedOption) {
+                        case "01": // Inventario logístico
+                            mappedData = selectedRows.map(row => ({
+                                dtContabilizacion: row['Fecha Contabilización'] || row['Fecha Contabilizacion'] || '',
+                                idRecurso: row['ID Recurso'] || '',
+                                idProducto: row['ID Producto'] || '',
+                                idCELO: row['ID CELO'] || '',
+                                idALMACEN: row['ID Almacén'] || row['ID Almacen'] || '',
+                                idMaterial: row['ID Material'] || '',
+                                vlContable: row['Valor Contable'] || '',
+                                idUMContable: row['UM Contable'] || '',
+                                idUsrAuditoria: row['Usuario Auditoría'] || row['Usuario Auditoria'] || 'AdminBCN',
+                                dtUsrAuditoria: row['Fecha Auditoría'] || row['Fecha Auditoria'] || new Date().toISOString().slice(0, 19).replace('T', ' ')
+                            }));
+                            break;
+                        case "02": // Movimiento logístico
+                            // Mapear para movimientos logísticos (ajustar según estructura esperada)
+                            case "02": // Movimiento logístico
+                            mappedData = selectedRows.map((row, index) => ({
+                                IDMessage: String(row["ID Mensaje"] || ""),
+                                dtContabilizacion: String(row["Fecha Contabilización"] || row["Fecha Contabilizacion"] || ""),
+                                idMovimiento: String(row["ID Movimiento"] || ""),
+                                dtMovimientoIni: String(row["Fecha Inicio"] || ""),
+                                dtMovimientoFin: String(row["Fecha Fin"] || ""),
+                                tpMovimiento: String(row["Tipo Movimiento"] || ""),
+                                clsMovimiento: String(row["Clase Movimiento"] == '9G5' ? '101' : row["Clase Movimiento"] || ""),
+                                TransactionCodeSAP: String(row["Código Transacción SAP"] || row["Codigo Transacción SAP"] || row["Codigo Transaccion SAP"] || ""),
+                                StockTypeSAP: String(row["Tipo Stock SAP"] || ""),
+                                NumPedido: String(row["Número Pedido"] || row["Numero Pedido"] || ""),
+                                PosPedido: String(row["Posición Pedido"] || row["Posicion Pedido"] || ""),
+                                idRecOrigen: String(row["Recurso Origen"] || ""),
+                                idProdOrigen: String(row["Producto Origen"] || ""),
+                                idRecDestino: String(row["Recurso Destino"] || ""),
+                                idProdDestino: String(row["Producto Destino"] || ""),
+                                idSRCCELO: String(row["CeLo Origen"] || ""),
+                                idSRCALMACEN: String(row["Almacén Origen"] || row["Almacen Origen"] || ""),
+                                idSRCMaterial: String(row["Material Origen"] || ""),
+                                idDSTCCELO: String(row["CeLo Destino"] || ""),
+                                idDSTALMACEN: String(row["Almacén Destino"] || row["Almacen Destino"] || ""),
+                                idDSTMaterial: String(row["Material Destino"] || ""),
+                                vlContable: String(row["Valor Contable"] || ""),
+                                idUMContable: String(row["UM Contable"] || ""),
+                                idCentroCosto: String(row["CeCo"] || ""),
+                                txEstadoEnvio: String(row["Estado de Envío"] || row["Estado de Envio"] || ""),
+                                vlAtrCalidad: String(row["Valor Atributo Calidad"] || ""),
+                                idUMAtrCalidad: String(row["UM Atributo Calidad"] || ""),
+                                vlCantidaadQCI: String(row["Valor QCI"] || ""),
+                                idUMCantidadQCI: String(row["ID UM QCI"] || ""),
+                                txCantidadQCI: String(row["Cantidad QCI"] || ""),
+                                IdPropiedad: String(row["IdPropiedad"] || ""),
+                                jsMovimiento: String(row["Json Movimientos"] || ""),
+                                idUsrAuditoria: String(row["Usuario Auditoria"] || row["Usuario Auditoría"] || "AdminBCN"),
+                                dtUsrAuditoria: String(row["Fecha Auditoría"] || row["Fecha Auditoria"] || new Date().toISOString().slice(0, 19).replace("T", " "))
+                            }));
+                            break;
+                        case "03": // Movimiento de costos
+                            mappedData = selectedRows.map(row => ({
+                                idMessage: row['ID Mensaje'] || '',
+                                tpObjCostos: row['Tipo Objeto Costos'] || '',
+                                txMovimiento: row['Texto Movimiento'] || '',
+                                dtContabilizacion: row['Fecha Contabilización'] || row['Fecha Contabilizacion'] || '',
+                                idObjCosto: row['ID Objeto Costo'] || '',
+                                idValEstadistico: row['ID Valor Estadístico'] || row['ID Valor Estadistico'] || '',
+                                nmProducto: row['Nombre Producto'] || '',
+                                idUM: row['UM'] || '',
+                                vlContabilizado: row['Valor Contabilizado'] || 0,
+                                jsMovimiento: row['JSON Movimiento'] || '',
+                                idUsrAuditoria: row['Usuario Auditoría'] || row['Usuario Auditoria'] || 'AdminBCN',
+                                dtUsrAuditoria: row['Fecha Auditoría'] || row['Fecha Auditoria'] || new Date().toISOString().slice(0, 19).replace('T', ' ')
+                            }));
+                            break;
+                        default:
+                            alert('Opción ARES no válida.');
+                            return;
+                    }
+
+                    // Preparar datos según el tipo de ARES
+                    let requestData = {};
+                    switch (selectedOption) {
+                        case "01": // Inventario logístico
+                            requestData.inventoryData = String(JSON.stringify(mappedData));
+                            break;
+                        case "02": // Movimiento logístico
+                            requestData.movementData = String(JSON.stringify(mappedData));
+                            break;
+                        case "03": // Movimiento de costos
+                            requestData.costData = String(JSON.stringify(mappedData));
+                            break;
+                    }
+
+                    // Enviar a ARES
+                    const requestBody = JSON.stringify({
+                            option: selectedOption,
+                            ...requestData
+                        });
+
+                    console.log('Request body:', requestBody);
+                    
+                    const response = await fetch('/Integration/ExecuteAresWbService', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: requestBody
+                    });
+
+                    const result = await response.json();
+
+                    console.log('Response:', JSON.stringify(result));
+                    
+                    if (result.Success) {
+                        // Verificar el StatusCode de cada elemento en result.Data
+                        if (result.Data && Array.isArray(result.Data)) {
+                            const successCount = result.Data.filter(item => item.StatusCode === 200).length;
+                            const failedCount = result.Data.filter(item => item.StatusCode === 500).length;
+                            
+                            if (failedCount === 0) {
+                                alert(`Envío exitoso: ${successCount} registros enviados correctamente a ARES`);
+                                // Deseleccionar después del envío exitoso
+                                deselectAllAresData();
+                            } else if (successCount === 0) {
+                                alert(`Error en el envío: ${failedCount} registros fallaron. Revisar logs para más detalles.`);
+                            } else {
+                                alert(`Envío parcial: ${successCount} registros exitosos, ${failedCount} registros fallaron. Revisar logs para más detalles.`);
+                            }
+                            
+                            // Mostrar detalles en consola para debugging
+                            console.log(`Resultados: ${successCount} exitosos, ${failedCount} fallidos`);
+                            result.Data.forEach((item, index) => {
+                                if (item.StatusCode === 500) {
+                                    console.error(`Error en registro ${index + 1}:`, item.Message);
+                                }
+                            });
+                        } else {
+                            alert(`Envío exitoso: ${result.message || 'Datos enviados correctamente a ARES'}`);
+                            deselectAllAresData();
+                        }
+                    } else {
+                        alert(`Error en el envío: ${result.message || 'Error desconocido'}`);
+                    }
+                } catch (error) {
+                    console.error('Error enviando datos a ARES:', error);
+                    alert('Error de conexión al enviar datos a ARES.');
+                }
+            }
+
+            // Exponer funciones al ámbito global
+            window.selectAllAresData = selectAllAresData;
+            window.deselectAllAresData = deselectAllAresData;
+            window.sendSelectedToAres = sendSelectedToAres;
+
+            // Global variables for cancellation
+            let currentAbortController = null;
+            let isExecuting = false;
+            let pendingExecution = null; // Para almacenar la ejecución pendiente después del modal
+            let lastQueryDateInfo = '';
+
+            // Función para verificar si la opción requiere selección de fecha
+            function requiresDateSelection(type, option) {
+                const dateSelectionOptions = {
+                    'integrar': ['01', '04', '06'], // AORA Inventario Operativo, ROMSS Inventario Operativo, BCN Foto Inventario
+                    'consolidar': ['01', '06', '07'],     // BCN Inventarios, BCN Foto Inventario Consolidado, BCN Aplicar Regla de Balance, BCN Diferencia Balance
+                    'ares': ['06']            // ARES: Rev. Procesamiento Logistico, ARES: Rev. Procesamiento Costo
+                };
+                
+                return dateSelectionOptions[type] && dateSelectionOptions[type].includes(option);
+            }
+
+            // Función para mostrar el modal de selección de fecha
+            function showDateSelectionModal(fechaIni, fechaFin, callback) {
+                // Actualizar los valores en el modal
+                document.getElementById('initialDateValue').textContent = fechaIni;
+                document.getElementById('finalDateValue').textContent = fechaFin;
+                
+                // Resetear la selección
+                document.getElementById('finalDate').checked = true;
+                
+                // Mostrar el modal
+                const modal = new bootstrap.Modal(document.getElementById('dateSelectionModal'));
+                modal.show();
+                
+                // Configurar el callback cuando se confirme la selección
+                document.getElementById('confirmDateSelection').onclick = function() {
+                    const useInitialDate = document.getElementById('initialDate').checked;
+                    modal.hide();
+                    callback(useInitialDate);
+                };
+            }
+
+            // Función para formatear JSON con indentación personalizada
+            function formatJsonCustom(obj, indent = 0) {
+                const indentStr = '    '.repeat(indent); // 4 espacios por nivel
+                const nextIndentStr = '    '.repeat(indent + 1);
+                
+                if (obj === null) return 'null';
+                if (typeof obj === 'boolean') return obj.toString();
+                if (typeof obj === 'number') {
+                    if (!Number.isInteger(obj)) {
+                        return Number(obj.toFixed(3)).toString();
+                    }
+                    return obj.toString();
+                }
+                if (typeof obj === 'string') return `"${obj}"`;
+                
+                if (Array.isArray(obj)) {
+                    if (obj.length === 0) return '[]';
+                    const items = obj.map(item => `${nextIndentStr}${formatJsonCustom(item, indent + 1)}`);
+                    return `[\n${items.join(',\n')}\n${indentStr}]`;
+                }
+                
+                if (typeof obj === 'object') {
+                    const keys = Object.keys(obj);
+                    if (keys.length === 0) return '{}';
+                    
+                    const items = keys.map(key => {
+                        const value = formatJsonCustom(obj[key], indent + 1);
+                        return `${nextIndentStr}"${key}": ${value}`;
+                    });
+                    
+                    return `{\n${items.join(',\n')}\n${indentStr}}`;
+                }
+                
+                return obj.toString();
+            }
+
+            // Función para mostrar el modal del JSON
+            function showJsonModal(jsonData) {
+                try {
+                    // El JSON ya viene formateado desde el backend, solo necesitamos mostrarlo
+                    let formattedJson;
+                    if (typeof jsonData === 'string') {
+                        // Si viene como string, intentar parsearlo y formatearlo de nuevo para asegurar consistencia
+                        try {
+                            const parsedJson = JSON.parse(jsonData);
+                            formattedJson = JSON.stringify(parsedJson, null, 4);
+                        } catch {
+                            // Si no se puede parsear, usar el string original (que ya debería estar formateado)
+                            formattedJson = jsonData;
+                        }
+                    } else {
+                        formattedJson = JSON.stringify(jsonData, null, 4);
+                    }
+                    
+                    // Mostrar el JSON formateado en el modal
+                    document.getElementById('jsonContent').textContent = formattedJson;
+                    
+                    // Configurar el botón de copiar
+                    @* document.getElementById('copyJsonBtn').onclick = function() {
+                        navigator.clipboard.writeText(formattedJson).then(function() {
+                            // Cambiar temporalmente el texto del botón para indicar que se copió
+                            const btn = document.getElementById('copyJsonBtn');
+                            const originalText = btn.textContent;
+                            btn.textContent = 'Copiado!';
+                            btn.classList.remove('btn-primary');
+                            btn.classList.add('btn-success');
+                            
+                            setTimeout(function() {
+                                btn.textContent = originalText;
+                                btn.classList.remove('btn-success');
+                                btn.classList.add('btn-primary');
+                            }, 2000);
+                        });
+                    }; *@
+                    
+                    // Mostrar el modal
+                    const modal = new bootstrap.Modal(document.getElementById('jsonModal'));
+                    modal.show();
+                } catch (error) {
+                    // Si hay error al parsear el JSON, mostrar el texto original
+                    document.getElementById('jsonContent').textContent = jsonData;
+                    const modal = new bootstrap.Modal(document.getElementById('jsonModal'));
+                    modal.show();
+                }
+            }
+
+            // Execute button: run the query for the selected option/type
+            document.getElementById('executeBtn').addEventListener('click', async function () {
+                if (!selectedOption || !selectedType) {
+                    alert('Seleccione un submódulo primero.');
+                    return;
+                }
+
+                if (isExecuting) {
+                    alert('Ya hay una operación en ejecución. Espere o cancele la operación actual.');
+                    return;
+                }
+
+                const fechaIniRaw = document.getElementById('dateFrom').value;
+                const fechaFinRaw = document.getElementById('dateTo').value;
+
+                // Formatear fechas con horas específicas
+                const fechaIni = fechaIniRaw ? `${fechaIniRaw} 00:00:00` : '';
+                const fechaFin = fechaFinRaw ? `${fechaFinRaw} 23:59:59` : '';
+
+                // Verificar si requiere selección de fecha
+                if (requiresDateSelection(selectedType, selectedOption)) {
+                    // Mostrar modal de selección de fecha
+                    showDateSelectionModal(fechaIni, fechaFin, function(useInitialDate) {
+                        // Ejecutar la consulta con el parámetro useInitialDate
+                        executeQuery(fechaIni, fechaFin, useInitialDate, false);
+                    });
+                } else {
+                    // Ejecutar directamente sin selección de fecha (useInitialDate = false por defecto)
+                    executeQuery(fechaIni, fechaFin, false, false);
+                }
+            });
+
+            // Execute button: run the query for the selected option/type
+            document.getElementById('integrarViewBtn').addEventListener('click', async function () {
+                if (!selectedOption || !selectedType) {
+                    alert('Seleccione un submódulo primero.');
+                    return;
+                }
+
+                if (isExecuting) {
+                    alert('Ya hay una operación en ejecución. Espere o cancele la operación actual.');
+                    return;
+                }
+
+                const viewIntegrar = true;
+
+                const fechaIniRaw = document.getElementById('dateFrom').value;
+                const fechaFinRaw = document.getElementById('dateTo').value;
+
+                // Formatear fechas con horas específicas
+                const fechaIni = fechaIniRaw ? `${fechaIniRaw} 00:00:00` : '';
+                const fechaFin = fechaFinRaw ? `${fechaFinRaw} 23:59:59` : '';
+
+                // Verificar si requiere selección de fecha
+                if (requiresDateSelection(selectedType, selectedOption)) {
+                    // Mostrar modal de selección de fecha
+                    showDateSelectionModal(fechaIni, fechaFin, function(useInitialDate) {
+                        // Ejecutar la consulta con el parámetro useInitialDate
+                        executeQuery(fechaIni, fechaFin, useInitialDate, viewIntegrar);
+                    });
+                } else {
+                    // Ejecutar directamente sin selección de fecha (useInitialDate = false por defecto)
+                    executeQuery(fechaIni, fechaFin, false, viewIntegrar);
+                }
+            });
+
+            // Función para ejecutar la consulta
+            async function executeQuery(fechaIni, fechaFin, useInitialDate, viewIntegrar) {
+                // Format dates for display based on user request AAAA-MM-DD HH:MM:SS
+                const displayFechaIni = fechaIni;
+                const displayFechaFin = fechaFin;
+
+                if (requiresDateSelection(selectedType, selectedOption)) {
+                    const selectedDateStr = useInitialDate ? displayFechaIni : displayFechaFin;
+                    lastQueryDateInfo = `Fecha de Consulta: ${selectedDateStr}`;
+                } else {
+                    const fromDateStr = fechaIni.split(' ')[0];
+                    const toDateStr = fechaFin.split(' ')[0];
+                    if (fromDateStr === toDateStr) {
+                        lastQueryDateInfo = `Fecha de Consulta: ${fromDateStr}`;
+                    } else {
+                        lastQueryDateInfo = `Rango: ${displayFechaIni} al ${displayFechaFin}`;
+                    }
+                }
+
+                // Show cancel button and hide execute button
+                document.getElementById('executeBtn').style.display = 'none';
+                if (selectedType === 'integrar') {
+                    document.getElementById('integrarViewBtn').style.display = 'none';
+                }
+                document.getElementById('cancelBtn').style.display = 'inline-block';
+                isExecuting = true;
+
+                // Show progress indicator
+                document.getElementById('progressIndicator').style.display = 'block';
+                document.getElementById('progressMessage').textContent = 'Ejecutando consulta...';
+                
+                const body = document.getElementById('mainGridBody');
+                const header = document.getElementById('mainGridHeader');
+                
+                body.innerHTML = '<tr><td colspan="100%" class="text-center text-info"><i class="bi bi-hourglass-split"></i> Cargando...</td></tr>';
+                header.innerHTML = '';
+
+                try {
+                    // Create abort controller for this request
+                    currentAbortController = new AbortController();
+                    const signal = currentAbortController.signal;
+
+                    const request = {
+                        option: selectedOption,
+                        fechaIni: fechaIni,
+                        fechaFin: fechaFin,
+                        type: selectedType,
+                        useInitialDate: useInitialDate,
+                        viewDataIntegrar: viewIntegrar
+                    };
+                    console.log(JSON.stringify(request));
+                    
+                    const response = await fetch('/Integration/DynamicQuery', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(request),
+                        signal: signal
+                    });
+
+                    if (signal.aborted) {
+                        console.log('Request was cancelled');
+                        return;
+                    }
+
+                    const result = await response.json();
+                    console.log(result.message);
+                    
+                    if (result.success) {
+                        // Reiniciar el estado de la paginación y los filtros con los nuevos datos
+                        currentPage = 1;
+                        pageSize = parseInt(document.getElementById('pageSizeSelect').value) || 10;
+                        clearAllFilters(false); // Limpiar filtros sin volver a renderizar
+
+                        // Check if we have data to display in the grid
+                        if (result.data && result.data.length > 0 && result.columns && result.columns.length > 0) {
+                            renderGrid(result.columns, result.data, document.querySelector('.submodule-link.active')?.textContent.trim() || '');
+                        } else {
+                            // Mostrar mensaje elegante cuando no hay datos
+                            renderNoDataMessage(result.message || 'No hay datos para mostrar');
+                        }
+                    } else {
+                        renderGrid(["Error"], [{"Error": result.message || 'Error en la operación'}], document.querySelector('.submodule-link.active')?.textContent.trim() || '');
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        console.log('Request was cancelled by user');
+                        renderGrid(["Cancelado"], [{"Cancelado": "Operación cancelada por el usuario"}], document.querySelector('.submodule-link.active')?.textContent.trim() || '');
+                    } else {
+                        console.error('Error en la consulta:', err);
+                        renderGrid(["Error"], [{"Error": `Error de conexión: ${err.message}`}], document.querySelector('.submodule-link.active')?.textContent.trim() || '');
+                    }
+                } finally {
+                    // Reset UI state
+                    document.getElementById('executeBtn').style.display = 'inline-block';
+                    if (selectedType === 'integrar') {
+                        document.getElementById('integrarViewBtn').style.display = 'inline-block';
+                    }
+                    document.getElementById('cancelBtn').style.display = 'none';
+                    document.getElementById('progressIndicator').style.display = 'none';
+                    isExecuting = false;
+                    currentAbortController = null;
+                }
+            }
+
+            // Cancel button: cancel the current operation
+            document.getElementById('cancelBtn').addEventListener('click', function () {
+                if (currentAbortController) {
+                    currentAbortController.abort();
+                    console.log('Cancellation requested');
+                }
+                
+                // Limpiar la sección de datos después de cancelar
+                setTimeout(() => {
+                    clearDataSection();
+                }, 100);
+            });
+
+            // Load configuration view
+            $('#config-link').on('click', function() {
+                var mainGridHeader = $('#mainGridHeader');
+                var mainGridBody = $('#mainGridBody');
+                
+                // Clear previous content and show loading indicator
+                mainGridHeader.html(''); // Clear header
+                mainGridBody.html('<tr><td colspan="100%" class="text-center text-info"><i class="bi bi-hourglass-split"></i> Cargando configuración...</td></tr>');
+                
+                // Unselect other modules
+                $('.submodule-link').removeClass('active');
+                $(this).addClass('active');
+                
+                // Limpiar variables globales
+                lastGridData = [];
+                lastGridColumns = [];
+                lastGridTitle = '';
+                originalGridData = [];
+                filteredGridData = [];
+                currentSearchTerm = '';
+                columnFilters = {};
+                currentPage = 1;
+                selectedAresData.clear();
+                
+                // Ocultar paginación
+                const paginationContainer = document.getElementById('paginationContainer');
+                if (paginationContainer) {
+                    paginationContainer.style.display = 'none';
+                }
+
+                $.ajax({
+                    url: '@Url.Action("Index", "Configuration")',
+                    type: 'GET',
+                    success: function(result) {
+                        mainGridHeader.html(''); // Keep header empty for config view
+                        mainGridBody.html('<tr><td colspan="100%">' + result + '</td></tr>');
+                    },
+                    error: function(xhr, status, error) {
+                        mainGridHeader.html(''); // Keep header empty for config view
+                        mainGridBody.html('<tr><td colspan="100%" class="text-center text-danger"><i class="bi bi-x-circle"></i> Error al cargar la configuración: ' + error + '</td></tr>');
+                    }
+                });
+            });
+
+            // Load configuration homologacion view
+            $('#config-homologacion').on('click', function() {
+                loadConfigurationModule('Configuración Homologación', 'homologacion');
+            });
+
+            // Load configuration forzamiento view
+            $('#config-forzamiento').on('click', function() {
+                loadConfigurationModule('Configuración de Forzamiento y Consolidación', 'forzamiento');
+            });
+
+            // Load configuration reglas view
+            $('#config-reglas').on('click', function() {
+                loadConfigurationModule('Configuración de Reglas de Balance', 'reglas');
+            });
+
+            // Load configuration logistica view
+            $('#config-logistica').on('click', function() {
+                loadConfigurationModule('Configuración de Movimientos Logísticos', 'logistica');
+            });
+
+            // Load configuration costos view
+            $('#config-costos').on('click', function() {
+                loadConfigurationModule('Configuración de Movimientos de Costos', 'costos');
+            });
+
+            // Función común para cargar módulos de configuración en construcción
+            function loadConfigurationModule(title, moduleType) {
+                var mainGridHeader = $('#mainGridHeader');
+                var mainGridBody = $('#mainGridBody');
+                
+                // Clear previous content and show loading indicator
+                mainGridHeader.html(''); // Clear header
+                mainGridBody.html('<tr><td colspan="100%" class="text-center text-info"><i class="bi bi-hourglass-split"></i> Cargando módulo...</td></tr>');
+                
+                // Unselect other modules
+                $('.submodule-link').removeClass('active');
+                $(`#config-${moduleType}`).addClass('active');
+                
+                // Limpiar variables globales
+                lastGridData = [];
+                lastGridColumns = [];
+                lastGridTitle = '';
+                originalGridData = [];
+                filteredGridData = [];
+                currentSearchTerm = '';
+                columnFilters = {};
+                currentPage = 1;
+                selectedAresData.clear();
+                
+                // Ocultar paginación
+                const paginationContainer = document.getElementById('paginationContainer');
+                if (paginationContainer) {
+                    paginationContainer.style.display = 'none';
+                }
+
+                // Mostrar mensaje de módulo en construcción
+                setTimeout(function() {
+                    mainGridHeader.html(''); // Keep header empty for config view
+                    mainGridBody.html(`
+                        <tr>
+                            <td colspan="100%" class="text-center py-5">
+                                <div class="no-data-message info">
+                                    <i class="bi bi-tools"></i>
+                                    <h5>${title}</h5>
+                                    <p >Módulo en construcción</p>
+                                    <small>
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Estamos trabajando para implementar esta funcionalidad. Pronto estará disponible.
+                                    </small>
+                                </div>
+                            </td>
+                        </tr>
+                    `);
+                }, 500);
+            }
+
+            // Utility: Print and Export
+            function printGrid() {
+                const dataToExport = lastGridData;
+
+                if (!dataToExport || dataToExport.length === 0) {
+                    alert('No hay datos para imprimir');
+                    return;
+                }
+
+                // Encabezado personalizado
+                const today = new Date();
+                const fechaGeneracion = today.toLocaleDateString('es-CO') + ' ' + today.toLocaleTimeString('es-CO');
+                const fechaIni = document.getElementById('dateFrom').value;
+                const fechaFin = document.getElementById('dateTo').value;
+                const usuario = 'AdminBCN';
+                const ip = '127.0.0.1'; // Si quieres obtener la IP real, deberás hacerlo desde backend o con un servicio externo
+
+                // Determinar el tipo de consulta y formatear las fechas según corresponda
+                const selectedType = document.querySelector('.submodule-link.active')?.getAttribute('data-type') || '';
+                const selectedOption = document.querySelector('.submodule-link.active')?.getAttribute('data-option') || '';
+                const selectedSubmodule = document.querySelector('.submodule-link.active')?.textContent.trim() || 'Reporte BCN Module';
+                
+                let fechaConsulta = '';
+                let inventoryTypeText = ''; // Agregar variable para tipo de inventario
+                
+                if (requiresDateSelection(selectedType, selectedOption)) {
+                    // Para consultas que requieren selección de fecha específica
+                    const useInitialDate = lastQueryDateInfo.includes('Fecha de Consulta:') ? 
+                        lastQueryDateInfo.includes('00:00:00') : false;
+                    
+                    // Determinar el tipo de inventario
+                    inventoryTypeText = useInitialDate ? 'Inventario inicial' : 'Inventario final';
+                    
+                    if (useInitialDate) {
+                        fechaConsulta = `Fecha de Consulta: ${fechaIni} 00:00:00`;
+                    } else {
+                        fechaConsulta = `Fecha de Consulta: ${fechaFin} 23:59:59`;
+                    }
+                } else {
+                    // Para consultas de rango
+                    if (fechaIni === fechaFin) {
+                        fechaConsulta = `Fecha de Consulta: ${fechaIni} 00:00:00 - ${fechaFin} 23:59:59`;
+                    } else {
+                        fechaConsulta = `Rango de Consulta: ${fechaIni} 00:00:00 - ${fechaFin} 23:59:59`;
+                    }
+                }
+
+                let encabezadoHTML = `
+                    <table style="width:100%; border:none; margin-bottom:10px;">
+                        <tr>
+                            <td style="width:20%; text-align:left; vertical-align:top;">
+                                <img src="${ecopetrolLogo}" alt="Ecopetrol" style="height:40px;" />
+                                <div style="font-size:11px; color:#333; margin-top:5px;">Fecha Generación<br>${fechaGeneracion}</div>
+                            </td>
+                            <td style="width:60%; text-align:center; vertical-align:top;">
+                                <div style="font-weight:bold; font-size:18px;">${selectedSubmodule}</div>
+                                ${inventoryTypeText ? `<div style="font-size:14px; margin-top:3px; color:#004237; font-weight:bold;">${inventoryTypeText}</div>` : ''}
+                                <div style="font-size:14px; margin-top:2px;">${fechaConsulta}</div>
+                                <div style="font-size:12px;">PROPIETARIO: ECP</div>
+                            </td>
+                            <td style="width:20%; text-align:right; vertical-align:top;">
+                                <img src="${aresLogo}" alt="ARES" style="height:35px;" />
+                                <div style="font-size:11px; color:#333; margin-top:5px;">Usuario: ${usuario}<br>IP Máquina: ${ip}</div>
+                            </td>
+                        </tr>
+                    </table>
+                `;
+
+                let tableHTML = `
+                    <table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif;">
+                        <thead>
+                            <tr style="background-color: #f2f2f2;">
+                                ${lastGridColumns.map(col => `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${col}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                dataToExport.forEach(row => {
+                    tableHTML += '<tr>';
+                    lastGridColumns.forEach(col => {
+                        const value = row[col] !== undefined && row[col] !== null ? row[col].toString() : '';
+                        tableHTML += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${value}</td>`;
+                    });
+                    tableHTML += '</tr>';
+                });
+
+                tableHTML += '</tbody></table>';
+
+                const filterInfo = currentSearchTerm !== ''
+                    ? `<p>Filtrado por: "${currentSearchTerm}" (${lastGridData.length} de ${lastGridData.length} registros)</p>`
+                    : '';
+
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>${lastGridTitle} - Impresión</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; margin: 20px; }
+                                table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+                                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                                th { background-color: #f2f2f2; font-weight: bold; }
+                                h1 { color: #333; margin-bottom: 10px; }
+                                .print-info { margin-bottom: 20px; color: #666; font-size: 12px; }
+                                @@media print {
+                                    body { margin: 0; }
+                                    .no-print { display: none; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            ${encabezadoHTML}
+                            <div class="print-info">
+                                <p>Total de registros: ${lastGridData.length}</p>
+                                ${filterInfo}
+                            </div>
+                            ${tableHTML}
+                            <div class="footer" style="text-align: center; font-size: 11px; margin-top: 50px; color: #666;">
+                                ARES ECOPETROL S.A. Todos los derechos reservados
+                            </div>
+                            <div class="no-print" style="margin-top: 20px;">
+                                <button onclick="window.print()">Imprimir</button>
+                                <button onclick="window.close()">Cerrar</button>
+                            </div>
+                        </body>
+                    </html>
+                `);
+                printWindow.document.close();
+            }
+            window.printGrid = printGrid;
+
+            async function exportGridToExcel() {
+                // Use the same parameters as your current grid
+                const option = document.querySelector('.submodule-link.active')?.getAttribute('data-option') || '';
+                const type = document.querySelector('.submodule-link.active')?.getAttribute('data-type') || '';
+                const fechaIniRaw = document.getElementById('dateFrom').value;
+                const fechaFinRaw = document.getElementById('dateTo').value;
+
+                // Formatear fechas con horas específicas
+                const fechaIni = fechaIniRaw ? `${fechaIniRaw} 00:00:00` : '';
+                const fechaFin = fechaFinRaw ? `${fechaFinRaw} 23:59:59` : '';
+
+                // Verificar si requiere selección de fecha
+                if (requiresDateSelection(type, option)) {
+                    // Mostrar modal de selección de fecha
+                    showDateSelectionModal(fechaIni, fechaFin, function(useInitialDate) {
+                        // Ejecutar la exportación con el parámetro useInitialDate
+                        executeExport(fechaIni, fechaFin, useInitialDate);
+                    });
+                } else {
+                    // Ejecutar directamente sin selección de fecha (useInitialDate = false por defecto)
+                    executeExport(fechaIni, fechaFin, false);
+                }
+            }
+
+            // Función para ejecutar la exportación
+            async function executeExport(fechaIni, fechaFin, useInitialDate) {
+                const option = document.querySelector('.submodule-link.active')?.getAttribute('data-option') || '';
+                const type = document.querySelector('.submodule-link.active')?.getAttribute('data-type') || '';
+
+                // Mostrar notificación sticky de progreso
+                showExportProgressNotification();
+
+                // Obtener los filtros aplicados actualmente
+                const currentSearchTerm = document.getElementById('searchTable')?.value || '';
+                const columnFilters = {};
+                document.querySelectorAll('.column-filter').forEach(input => {
+                    if (input.value && input.value.trim() !== '') {
+                        const columnIndex = input.id.replace('col-filter-', '');
+                        const columnName = lastGridColumns[parseInt(columnIndex)];
+                        if (columnName) {
+                            columnFilters[columnName] = input.value.trim();
+                        }
+                    }
+                });
+
+                // Determinar el tipo de consulta y formatear las fechas según corresponda
+                let fechaConsulta = '';
+                if (requiresDateSelection(type, option)) {
+                    // Para consultas que requieren selección de fecha específica
+                    if (useInitialDate) {
+                        fechaConsulta = `${fechaIni.split(' ')[0]} 00:00:00`;
+                    } else {
+                        fechaConsulta = `${fechaFin.split(' ')[0]} 23:59:59`;
+                    }
+                } else {
+                    // Para consultas de rango
+                    const fechaIniDate = fechaIni.split(' ')[0];
+                    const fechaFinDate = fechaFin.split(' ')[0];
+                    if (fechaIniDate === fechaFinDate) {
+                        fechaConsulta = `${fechaIniDate} 00:00:00 - ${fechaFinDate} 23:59:59`;
+                    } else {
+                        fechaConsulta = `${fechaIniDate} 00:00:00 - ${fechaFinDate} 23:59:59`;
+                    }
+                }
+
+                // Obtener el título del módulo seleccionado
+                const selectedSubmodule = document.querySelector('.submodule-link.active')?.textContent.trim() || 'Reporte BCN Module';
+                
+                const formData = new FormData();
+                formData.append('option', option);
+                formData.append('fechaIni', fechaIni);
+                formData.append('fechaFin', fechaFin);
+                formData.append('type', type);
+                formData.append('useInitialDate', useInitialDate);
+                formData.append('fechaConsulta', fechaConsulta);
+                formData.append('moduleTitle', selectedSubmodule);
+                
+                // Agregar viewDataIntegrar = true para opciones de integrar
+                if (type === 'integrar') {
+                    formData.append('viewDataIntegrar', true);
+                }
+
+                // Agregar filtros aplicados
+                formData.append('searchTerm', currentSearchTerm);
+                formData.append('columnFilters', JSON.stringify(columnFilters));
+
+                try {
+                    const response = await fetch('/Integration/ExportToExcel', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                                    if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    
+                    // Generar nombre del archivo con submódulo y fecha
+                    const selectedSubmodule = document.querySelector('.submodule-link.active')?.textContent.trim() || 'Submodulo';
+                    const dateFrom = document.getElementById('dateFrom').value;
+                    const dateTo = document.getElementById('dateTo').value;
+                    
+                    // Limpiar nombre del submódulo para usar como nombre de archivo
+                    const cleanSubmoduleName = selectedSubmodule
+                        .replace(/[^a-zA-Z0-9\s]/g, '') // Remover caracteres especiales
+                        .replace(/\s+/g, '_') // Reemplazar espacios con guiones bajos
+                        .trim();
+                    
+                    // Formatear fechas
+                    const formattedDateFrom = dateFrom ? dateFrom.replace(/-/g, '') : '';
+                    const formattedDateTo = dateTo ? dateTo.replace(/-/g, '') : '';
+                    
+                    // Crear nombre del archivo
+                    let fileName = `${cleanSubmoduleName}`;
+                    if (formattedDateFrom && formattedDateTo) {
+                        if (formattedDateFrom === formattedDateTo) {
+                            fileName += `_${formattedDateFrom}`;
+                        } else {
+                            fileName += `_${formattedDateFrom}_${formattedDateTo}`;
+                        }
+                    }
+                    fileName += '.xlsx';
+                    
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    
+                    // Mostrar notificación de éxito
+                    showExportSuccessNotification();
+                } else {
+                        showExportErrorNotification('Error al exportar a Excel');
+                    }
+                } catch (error) {
+                    showExportErrorNotification('Error de conexión al exportar');
+                }
+            }
+            window.exportGridToExcel = exportGridToExcel;
+
+            // Función para mostrar notificación sticky de progreso de exportación
+            function showExportProgressNotification() {
+                // Crear el contenedor de notificación si no existe
+                let notificationContainer = document.getElementById('stickyNotificationContainer');
+                if (!notificationContainer) {
+                    notificationContainer = document.createElement('div');
+                    notificationContainer.id = 'stickyNotificationContainer';
+                    notificationContainer.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        z-index: 9999;
+                        max-width: 400px;
+                    `;
+                    document.body.appendChild(notificationContainer);
+                }
+
+                // Crear la notificación de progreso
+                const notification = document.createElement('div');
+                notification.id = 'exportProgressNotification';
+                notification.className = 'no-data-message info';
+                notification.style.cssText = `
+                    margin: 0;
+                    padding: 1.5rem;
+                    box-shadow: var(--shadow-heavy);
+                    border: 2px solid var(--ecopetrol-verde);
+                    animation: slideInRight 0.5s ease-out;
+                `;
+
+                notification.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="mb-0 text-success">
+                            <i class="bi bi-file-earmark-excel me-2"></i>
+                            Exportando a Excel...
+                        </h6>
+                        <button type="button" class="btn-close btn-close-sm" onclick="hideExportNotification()"></button>
+                    </div>
+                    <div class="progress" style="height: 8px; background-color: rgba(255,255,255,0.3);">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: 100%; background-color: var(--ecopetrol-verde);">
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Generando archivo Excel con los datos seleccionados...
+                    </small>
+                `;
+
+                notificationContainer.innerHTML = '';
+                notificationContainer.appendChild(notification);
+            }
+
+            // Función para mostrar notificación de éxito
+            function showExportSuccessNotification() {
+                const notificationContainer = document.getElementById('stickyNotificationContainer');
+                if (!notificationContainer) return;
+
+                // Obtener información del archivo descargado
+                const selectedSubmodule = document.querySelector('.submodule-link.active')?.textContent.trim() || 'Submodulo';
+                const dateFrom = document.getElementById('dateFrom').value;
+                const dateTo = document.getElementById('dateTo').value;
+                
+                // Generar nombre del archivo para mostrar en la notificación
+                const cleanSubmoduleName = selectedSubmodule
+                    .replace(/[^a-zA-Z0-9\s]/g, '')
+                    .replace(/\s+/g, '_')
+                    .trim();
+                
+                const formattedDateFrom = dateFrom ? dateFrom.replace(/-/g, '') : '';
+                const formattedDateTo = dateTo ? dateTo.replace(/-/g, '') : '';
+                
+                let fileName = `${cleanSubmoduleName}`;
+                if (formattedDateFrom && formattedDateTo) {
+                    if (formattedDateFrom === formattedDateTo) {
+                        fileName += `_${formattedDateFrom}`;
+                    } else {
+                        fileName += `_${formattedDateFrom}_${formattedDateTo}`;
+                    }
+                }
+                fileName += '.xlsx';
+
+                const notification = document.createElement('div');
+                notification.className = 'no-data-message success';
+                notification.style.cssText = `
+                    margin: 0;
+                    padding: 1.5rem;
+                    box-shadow: var(--shadow-heavy);
+                    border: 2px solid var(--ecopetrol-verde);
+                    animation: slideInRight 0.5s ease-out;
+                `;
+
+                notification.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="mb-0 text-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Exportación completada
+                        </h6>
+                        <button type="button" class="btn-close btn-close-sm" onclick="hideExportNotification()"></button>
+                    </div>
+                    <p class="mb-2">El archivo Excel se ha descargado correctamente.</p>
+                    <p class="mb-2"><strong>Archivo:</strong> ${fileName}</p>
+                    <p class="mb-2"><strong>Registros exportados:</strong> ${lastGridData ? lastGridData.length : 0} registros</p>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        El archivo contiene todos los datos filtrados de la consulta actual.
+                    </small>
+                `;
+
+                notificationContainer.innerHTML = '';
+                notificationContainer.appendChild(notification);
+
+                // Auto-ocultar después de 5 segundos
+                setTimeout(() => {
+                    hideExportNotification();
+                }, 5000);
+            }
+
+            // Función para mostrar notificación de error
+            function showExportErrorNotification(message) {
+                const notificationContainer = document.getElementById('stickyNotificationContainer');
+                if (!notificationContainer) return;
+
+                const notification = document.createElement('div');
+                notification.className = 'no-data-message warning';
+                notification.style.cssText = `
+                    margin: 0;
+                    padding: 1.5rem;
+                    box-shadow: var(--shadow-heavy);
+                    border: 2px solid var(--ecopetrol-amarillo);
+                    animation: slideInRight 0.5s ease-out;
+                `;
+
+                notification.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="mb-0 text-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Error en la exportación
+                        </h6>
+                        <button type="button" class="btn-close btn-close-sm" onclick="hideExportNotification()"></button>
+                    </div>
+                    <p class="mb-2">${message}</p>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Intente nuevamente o contacte al administrador.
+                    </small>
+                `;
+
+                notificationContainer.innerHTML = '';
+                notificationContainer.appendChild(notification);
+
+                // Auto-ocultar después de 8 segundos
+                setTimeout(() => {
+                    hideExportNotification();
+                }, 8000);
+            }
+
+            // Función para ocultar notificación
+            function hideExportNotification() {
+                const notificationContainer = document.getElementById('stickyNotificationContainer');
+                if (notificationContainer) {
+                    notificationContainer.style.animation = 'slideOutRight 0.5s ease-out';
+                    setTimeout(() => {
+                        notificationContainer.remove();
+                    }, 500);
+                }
+            }
+
+            // Exponer función globalmente
+            window.hideExportNotification = hideExportNotification;
+
+            // Sidebar colapsable
+            const sidebar = document.getElementById('sidebarMenu');
+            const mainContent = document.getElementById('mainContent');
+            const toggleBtn = document.getElementById('toggleSidebar');
+            const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('collapsed');
+                
+                // Cambiar el ícono del botón
+                const icon = toggleBtn.querySelector('i');
+                if (sidebar.classList.contains('collapsed')) {
+                    icon.className = 'bi bi-list';
+                    toggleBtn.title = 'Expandir menú';
+                    toggleBtn.setAttribute('data-bs-original-title', 'Expandir menú');
+                } else {
+                    icon.className = 'bi bi-list';
+                    toggleBtn.title = 'Colapsar menú';
+                    toggleBtn.setAttribute('data-bs-original-title', 'Colapsar menú');
+                }
+                
+                // Actualizar tooltip si existe
+                const tooltip = bootstrap.Tooltip.getInstance(toggleBtn);
+                if (tooltip) {
+                    tooltip.dispose();
+                    new bootstrap.Tooltip(toggleBtn);
+                }
+                
+                // Guardar el estado en localStorage
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            }
+            
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', toggleSidebar);
+            }
+            
+            // Restaurar el estado del sidebar al cargar la página
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (sidebarCollapsed) {
+                sidebar.classList.add('collapsed');
+                const icon = toggleBtn.querySelector('i');
+                icon.className = 'bi bi-list';
+                toggleBtn.title = 'Expandir menú';
+            }
+            
+            // Por defecto, expandido en desktop y colapsado en móvil
+            if (window.innerWidth < 768) {
+                if (!sidebarCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    const icon = toggleBtn.querySelector('i');
+                    icon.className = 'bi bi-list';
+                    toggleBtn.title = 'Expandir menú';
+                }
+            }
+            
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 768) {
+                    // En desktop, mantener el estado guardado
+                    const savedState = localStorage.getItem('sidebarCollapsed') === 'true';
+                    sidebar.classList.toggle('collapsed', savedState);
+                    
+                    const icon = toggleBtn.querySelector('i');
+                    if (savedState) {
+                        icon.className = 'bi bi-list';
+                        toggleBtn.title = 'Expandir menú';
+                    } else {
+                        icon.className = 'bi bi-x-lg';
+                        toggleBtn.title = 'Colapsar menú';
+                    }
+                } else {
+                    // En móvil, siempre colapsado
+                    sidebar.classList.add('collapsed');
+                    const icon = toggleBtn.querySelector('i');
+                    icon.className = 'bi bi-list';
+                    toggleBtn.title = 'Expandir menú';
+                }
+            });
+
+            // Variables para búsqueda y paginación
+            let originalGridData = [];
+            let filteredGridData = [];
+            let currentSearchTerm = '';
+            let columnFilters = {};
+            let currentPage = 1;
+            let pageSize = 10;
+            let volumeSeparatorColumn = null;
+
+            // Nueva función para aplicar filtros por columna (solo filtra datos, no renderiza)
+            function applyColumnFilters() {
+                if (!originalGridData) {
+                    filteredGridData = [];
+                    return;
+                }
+                
+                let filtered = [...originalGridData];
+
+                // Aplicar filtro global primero
+                if (currentSearchTerm && currentSearchTerm.trim() !== '') {
+                    const globalTerm = currentSearchTerm.toLowerCase().trim();
+                    filtered = filtered.filter(row => {
+                        return lastGridColumns.some(column => {
+                            const cellValue = row[column];
+                            if (cellValue === null || cellValue === undefined) return false;
+                            return cellValue.toString().toLowerCase().includes(globalTerm);
+                        });
+                    });
+                }
+
+                // Aplicar filtros por columna
+                Object.keys(columnFilters).forEach(column => {
+                    const filterValue = columnFilters[column];
+                    if (filterValue && filterValue.trim() !== '') {
+                        const columnTerm = filterValue.toLowerCase().trim();
+                        filtered = filtered.filter(row => {
+                            const cellValue = row[column];
+                            if (cellValue === null || cellValue === undefined) return false;
+                            return cellValue.toString().toLowerCase().includes(columnTerm);
+                        });
+                    }
+                });
+
+                filteredGridData = filtered;
+            }
+
+
+            // Nueva función para mostrar información de filtros aplicados
+            function updateFiltersInfo() {
+                const activeFilters = [];
+                
+                if (currentSearchTerm && currentSearchTerm.trim() !== '') {
+                    activeFilters.push(`Global: "${currentSearchTerm}"`);
+                }
+                
+                Object.keys(columnFilters).forEach(column => {
+                    const filterValue = columnFilters[column];
+                    if (filterValue && filterValue.trim() !== '') {
+                        activeFilters.push(`${column}: "${filterValue}"`);
+                    }
+                });
+
+                return activeFilters;
+            }
+
+            // Nueva función para limpiar todos los filtros
+            function clearAllFilters(shouldRender = true) {
+                currentSearchTerm = '';
+                columnFilters = {};
+                const searchInput = document.getElementById('searchTable');
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+                
+                // Limpiar todos los filtros de columna
+                document.querySelectorAll('.column-filter').forEach(input => {
+                    input.value = '';
+                });
+
+                if (shouldRender) {
+                    currentPage = 1;
+                    renderGrid(lastGridColumns, undefined, lastGridTitle);
+                }
+            }
+
+            // Función de búsqueda/filtrado (actualizada)
+            function filterTableData(searchTerm) {
+                currentSearchTerm = searchTerm;
+                currentPage = 1; // Resetear a la primera página con cada búsqueda
+                renderGrid(lastGridColumns, undefined, lastGridTitle);
+            }
+
+            // Función para actualizar el placeholder del buscador
+            function updateSearchPlaceholder() {
+                if (searchInput && originalGridData.length > 0) {
+                    const totalRecords = originalGridData.length;
+                    const totalColumns = lastGridColumns.length;
+                    searchInput.placeholder = `Buscar en ${totalRecords} registros`;
+                } else if (searchInput) {
+                    searchInput.placeholder = 'Buscar en tabla...';
+                }
+            }
+
+            // Event listeners para el buscador
+            const searchInput = document.getElementById('searchTable');
+            const clearSearchBtn = document.getElementById('clearSearch');
+
+            if (searchInput) {
+                // Búsqueda en tiempo real con debounce para no sobrecargar
+                let debounceTimer;
+                searchInput.addEventListener('input', function () {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        filterTableData(this.value);
+                    }, 300);
+                });
+
+                // Búsqueda al presionar Enter
+                searchInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        filterTableData(this.value);
+                    }
+                });
+            }
+
+            if (clearSearchBtn) {
+                clearSearchBtn.addEventListener('click', function () {
+                    clearAllFilters(true);
+                    searchInput.focus();
+                });
+            }
+
+            // Función para limpiar completamente cuando no hay submódulo seleccionado
+            function clearAllData() {
+                if (!selectedOption || !selectedType) {
+                    clearDataSection();
+                }
+            }
+
+            // Limpiar datos al cargar la página si no hay submódulo seleccionado
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!selectedOption || !selectedType) {
+                    clearDataSection();
+                }
+            });
+
+            // Modificar la función renderGrid para trabajar con datos filtrados y paginación
+            function renderGridOriginal(columns, data, title) {
+                console.log('renderGrid called with:', { columns, dataLength: data?.length, title });
+
+                const isNewQuery = data !== undefined;
+                const header = document.getElementById('mainGridHeader');
+                const body = document.getElementById('mainGridBody');
+
+                if (!header || !body) {
+                    console.error('Header or body elements not found');
+                    return;
+                }
+
+                // Si es una nueva consulta, se actualizan los datos originales y se redibuja el encabezado.
+                if (isNewQuery) {
+                    originalGridData = (data || []).map(row => {
+                        const newRow = {};
+                        (columns || []).forEach(col => {
+                            newRow[col] = (row && col in row && row[col] !== null && row[col] !== undefined) ? row[col] : '';
+                        });
+                        return newRow;
+                    });
+                    lastGridColumns = columns || [];
+                    lastGridTitle = title || 'SELECCIONA UN MÓDULO PARA VISUALIZAR DATOS';
+                    
+                    updateSearchPlaceholder();
+                    updateFiltersInfo();
+
+                    // --- DIBUJAR ENCABEZADO (SOLO EN NUEVAS CONSULTAS) ---
+                    header.innerHTML = '';
+                    
+                    separatorColumns = new Set(); // Reset on new query
+
+                    // Header con título
+                    const headerRow1 = document.createElement('tr');
+                    const thTitle = document.createElement('th');
+                    thTitle.colSpan = selectedType === 'ares' ? lastGridColumns.length + 1 : lastGridColumns.length;
+                    thTitle.className = 'main-title';
+                    thTitle.id = 'mainGridTitle';
+                    
+                    let titleContent = `<div>${lastGridTitle}</div>`;
+                    
+                    // Agregar información de consulta de inventario si es una consulta de inventario
+                    if (requiresDateSelection(selectedType, selectedOption)) {
+                        const selectedDate = lastQueryDateInfo.includes('Fecha de Consulta:') ? 
+                            lastQueryDateInfo.replace('Fecha de Consulta: ', '') : 
+                            (lastQueryDateInfo.includes('Rango:') ? 
+                                lastQueryDateInfo.replace('Rango: ', '').split(' al ')[1] : 
+                                '');
+                        
+                        if (selectedDate) {
+                            // La fecha ya está en formato AAAA-MM-DD HH:MM:SS
+                            titleContent += `<div style="font-size: 0.75rem; font-weight: normal; margin-top: 5px;">Consulta de Inventario: ${selectedDate}</div>`;
+                        }
+                    } else if (lastQueryDateInfo) {
+                        titleContent += `<div style="font-size: 0.75rem; font-weight: normal; margin-top: 5px;">${lastQueryDateInfo}</div>`;
+                    }
+                    thTitle.innerHTML = titleContent;
+
+                    headerRow1.appendChild(thTitle);
+                    header.appendChild(headerRow1);
+
+                    // Header con nombres de columnas
+                    const headerRow2 = document.createElement('tr');
+                    const headerRow3 = document.createElement('tr');
+                    const groupPrefixes = ['Volumen', 'Masa', 'Muestra', 'Pedido', 'Vol', 'Mas', 'Origen', 'Destino', 'Auditoria'];
+                    const needsComplexHeader = lastGridColumns.some(c => groupPrefixes.some(p => c.includes(p)));
+
+                    // ARES Checkbox logic first
+                    if (selectedType === 'ares') {
+                        const thCheckbox = document.createElement('th');
+                        if (needsComplexHeader) {
+                            thCheckbox.rowSpan = 2;
+                        }
+                        thCheckbox.innerHTML = '<input type="checkbox" id="selectAllCheckbox" class="form-check-input">';
+                        thCheckbox.style.width = '40px';
+                        thCheckbox.style.textAlign = 'center';
+                        thCheckbox.style.verticalAlign = 'middle';
+                        headerRow2.appendChild(thCheckbox);
+                    }
+
+                    if (needsComplexHeader) {
+                        const headerStructure = [];
+                        const processedCols = new Set();
+
+                        lastGridColumns.forEach(col => {
+                            if (processedCols.has(col)) return;
+
+                            let groupFound = false;
+
+                            for (const prefix of groupPrefixes) {
+                                // Buscar columnas que contengan el prefijo (sin espacios)
+                                if (col.includes(prefix) || col === `UM${prefix}` || col === `UM ${prefix}` || col === `UM${prefix.toUpperCase()}`) {
+                                    const groupCols = lastGridColumns.filter(c => 
+                                        c.includes(prefix) || c === `UM${prefix}` || c === `UM ${prefix}` || c === `UM${prefix.toUpperCase()}`
+                                    );
+                                    headerStructure.push({ name: prefix, isGroup: true, cols: groupCols });
+                                    if (groupCols.length > 0) {
+                                        separatorColumns.add(groupCols[groupCols.length - 1]);
+                                    }
+                                    groupCols.forEach(c => processedCols.add(c));
+                                    groupFound = true;
+                                    break;
+                                }
+                            }
+
+                            if (!groupFound) {
+                                headerStructure.push({ name: col, isGroup: false });
+                                processedCols.add(col);
+                            }
+                        });
+
+                        const styleHeaderCell = (th) => {
+                            th.style.padding = '0.3rem';
+                            th.style.fontSize = '0.8rem';
+                        };
+
+                        headerStructure.forEach(item => {
+                            if (item.isGroup) {
+                                const thGroup = document.createElement('th');
+                                thGroup.textContent = item.name;
+                                thGroup.colSpan = item.cols.length;
+                                thGroup.style.textAlign = 'center';
+                                styleHeaderCell(thGroup);
+                                headerRow2.appendChild(thGroup);
+
+                                item.cols.forEach(colName => {
+                                    const thSub = document.createElement('th');
+                                    let subHeaderText = colName;
+                                    
+                                    // Extraer el texto del subencabezado
+                                    if (colName.includes(item.name)) {
+                                        subHeaderText = colName.replace(item.name, '').trim();
+                                        if (subHeaderText === '') {
+                                            subHeaderText = item.name;
+                                        }
+                                    } else if (colName.startsWith('UM') || colName.includes('UM')) {
+                                        subHeaderText = 'UM';
+                                    }
+                                    
+                                    thSub.textContent = subHeaderText;
+                                    if (separatorColumns.has(colName)) {
+                                        thSub.style.borderRight = '2px solid #dee2e6';
+                                    }
+                                    styleHeaderCell(thSub);
+                                    headerRow3.appendChild(thSub);
+                                });
+                            } else { // Standalone column
+                                const th = document.createElement('th');
+                                th.textContent = item.name;
+                                th.rowSpan = 2;
+                                th.style.verticalAlign = 'middle';
+                                styleHeaderCell(th);
+                                headerRow2.appendChild(th);
+                            }
+                        });
+
+                        header.appendChild(headerRow2);
+                        header.appendChild(headerRow3);
+                    } else {
+                        lastGridColumns.forEach(col => {
+                            const th = document.createElement('th');
+                            th.textContent = col;
+                            headerRow2.appendChild(th);
+                        });
+                        header.appendChild(headerRow2);
+                    }
+
+                    // Fila de filtros por columna
+                    const filterRow = document.createElement('tr');
+                    filterRow.className = 'column-filters-row';
+                    
+                    if (selectedType === 'ares') {
+                        const tdCheckboxFilter = document.createElement('td');
+                        tdCheckboxFilter.style.padding = '4px';
+                        filterRow.appendChild(tdCheckboxFilter);
+                    }
+                    
+                    lastGridColumns.forEach((col, index) => {
+                        const td = document.createElement('td');
+                        td.style.padding = '4px';
+                        
+                        const filterInput = document.createElement('input');
+                        filterInput.id = `col-filter-${index}`;
+                        filterInput.type = 'text';
+                        filterInput.className = 'form-control form-control-sm column-filter';
+                        filterInput.placeholder = `Filtrar ${col}...`;
+                        filterInput.style.fontSize = '11px';
+                        filterInput.value = columnFilters[col] || '';
+                        
+                        filterInput.addEventListener('input', function() {
+                            const filterValue = this.value;
+                            if (filterValue.trim() === '') {
+                                delete columnFilters[col];
+                            } else {
+                                columnFilters[col] = filterValue;
+                            }
+                            currentPage = 1;
+                            renderGrid(lastGridColumns, undefined, lastGridTitle);
+                        });
+
+                        filterInput.addEventListener('keypress', function(e) {
+                            if (e.key === 'Enter') {
+                                const filterValue = this.value;
+                                if (filterValue.trim() === '') {
+                                    delete columnFilters[col];
+                                } else {
+                                    columnFilters[col] = filterValue;
+                                }
+                                currentPage = 1;
+                                renderGrid(lastGridColumns, undefined, lastGridTitle);
+                            }
+                        });
+
+                        if (col === volumeSeparatorColumn) {
+                            td.style.borderRight = '2px solid #dee2e6';
+                        }
+                        td.appendChild(filterInput);
+                        filterRow.appendChild(td);
+                    });
+                    header.appendChild(filterRow);
+                }
+
+                // Siempre se aplica el filtro y se redibuja el cuerpo de la tabla.
+                applyColumnFilters();
+                body.innerHTML = '';
+                
+                lastGridData = filteredGridData;
+
+                let dataToRender = filteredGridData;
+
+                if (pageSize > 0) {
+                    const start = (currentPage - 1) * pageSize;
+                    const end = start + pageSize;
+                    dataToRender = dataToRender.slice(start, end);
+                }
+                
+                if (!dataToRender || dataToRender.length === 0) {
+                    const activeFilters = updateFiltersInfo();
+                    if (activeFilters.length > 0) {
+                        // Si hay filtros aplicados, mostrar mensaje de búsqueda sin resultados
+                        const colspan = selectedType === 'ares' ? (lastGridColumns.length || 0) + 1 : (lastGridColumns.length || 1);
+                        body.innerHTML = `<tr><td colspan="${colspan}" class="text-center py-4">
+                            <div class="no-data-message warning">
+                                <i class="bi bi-search"></i>
+                                <h5>No se encontraron resultados</h5>
+                                <p>No se encontraron resultados con los filtros aplicados</p>
+                                <small>
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Intente ajustar los criterios de búsqueda o limpiar los filtros para ver más resultados.
+                                </small>
+                            </div>
+                        </td></tr>`;
+                    } else {
+                        // Si no hay filtros, usar el mensaje elegante
+                        renderNoDataMessage('No hay datos para mostrar');
+                        return; // Salir de la función ya que renderNoDataMessage maneja todo
+                    }
+                } else {
+                    for (let i = 0; i < dataToRender.length; i++) {
+                        const row = dataToRender[i];
+                        const tr = document.createElement('tr');
+                        
+                        if (selectedType === 'ares') {
+                            const tdCheckbox = document.createElement('td');
+                            tdCheckbox.style.textAlign = 'center';
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.className = 'form-check-input ares-checkbox';
+                            // Usar el índice real en filteredGridData, no en la página actual
+                            const realIndex = filteredGridData.findIndex(row => 
+                                JSON.stringify(row) === JSON.stringify(dataToRender[i])
+                            );
+                            checkbox.value = realIndex >= 0 ? realIndex : i;
+                            
+                            // Sincronizar el estado del checkbox con la selección global
+                            if (selectedAresData.has(checkbox.value)) {
+                                checkbox.checked = true;
+                            }
+                            
+                            checkbox.addEventListener('change', function() {
+                                if (this.checked) {
+                                    selectedAresData.add(this.value);
+                                } else {
+                                    selectedAresData.delete(this.value);
+                                }
+                                updateAresSelectionCount();
+                            });
+                            tdCheckbox.appendChild(checkbox);
+                            tr.appendChild(tdCheckbox);
+                        }
+                        
+                        lastGridColumns.forEach(col => {
+                            const td = document.createElement('td');
+                            let value = row[col];
+                            if (value === undefined || value === null) value = '';
+                            
+                            // Manejo especial para la columna Json Movimientos
+                            if (col === 'Json Movimientos' && value) {
+                                const button = document.createElement('button');
+                                button.className = 'btn btn-sm btn-outline-primary';
+                                button.textContent = 'Ver JSON';
+                                button.onclick = function() {
+                                    showJsonModal(value);
+                                };
+                                td.appendChild(button);
+                            } else {
+                                // Formatear números decimales con máximo 3 decimales
+                                if (typeof value === 'number' && !Number.isInteger(value)) {
+                                    value = Number(value.toFixed(3));
+                                }
+                                td.textContent = value;
+                            }
+                            
+                            if (col === volumeSeparatorColumn) {
+                                td.style.borderRight = '2px solid #dee2e6';
+                            }
+                            tr.appendChild(td);
+                        });
+                        body.appendChild(tr);
+                    }
+                }
+                
+                if (selectedType === 'ares') {
+                    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.addEventListener('change', function() {
+                            if (this.checked) {
+                                // Seleccionar TODOS los registros filtrados, no solo los de la página actual
+                                selectedAresData.clear();
+                                for (let i = 0; i < filteredGridData.length; i++) {
+                                    selectedAresData.add(i.toString());
+                                }
+                                // Marcar todos los checkboxes visibles
+                                const checkboxes = document.querySelectorAll('.ares-checkbox');
+                                checkboxes.forEach(checkbox => {
+                                    checkbox.checked = true;
+                                });
+                            } else {
+                                // Deseleccionar todos
+                                selectedAresData.clear();
+                                const checkboxes = document.querySelectorAll('.ares-checkbox');
+                                checkboxes.forEach(checkbox => {
+                                    checkbox.checked = false;
+                                });
+                            }
+                            updateAresSelectionCount();
+                        });
+                    }
+                }
+                
+                // Actualizar el estado del checkbox principal después de renderizar
+                if (selectedType === 'ares') {
+                    updateSelectAllCheckboxState();
+                    // Sincronizar los checkboxes visibles con el estado global
+                    setTimeout(() => syncVisibleCheckboxes(), 100);
+                }
+
+                // Solo renderizar paginación si hay datos válidos y no estamos en estado de limpieza
+                if (filteredGridData && filteredGridData.length > 0 && lastGridColumns && lastGridColumns.length > 0) {
+                    renderPagination(filteredGridData.length);
+                } else {
+                    // Ocultar paginación si no hay datos
+                    const paginationContainer = document.getElementById('paginationContainer');
+                    if (paginationContainer) {
+                        paginationContainer.style.display = 'none';
+                    }
+                }
+            }
+
+            // Función para mostrar mensaje elegante cuando no hay datos
+            function renderNoDataMessage(message) {
+                const header = document.getElementById('mainGridHeader');
+                const body = document.getElementById('mainGridBody');
+
+                if (!header || !body) {
+                    console.error('Header or body elements not found');
+                    return;
+                }
+
+                // Limpiar contenido anterior
+                header.innerHTML = '';
+                body.innerHTML = '';
+
+                // Crear encabezado con título
+                const headerRow = document.createElement('tr');
+                const thTitle = document.createElement('th');
+                thTitle.colSpan = 1;
+                thTitle.className = 'main-title';
+                thTitle.id = 'mainGridTitle';
+                thTitle.textContent = document.querySelector('.submodule-link.active')?.textContent.trim() || 'NOMBRE DE INTERFASE DE VISUALIZACIÓN';
+                headerRow.appendChild(thTitle);
+                header.appendChild(headerRow);
+
+                // Crear mensaje elegante
+                const messageRow = document.createElement('tr');
+                const messageCell = document.createElement('td');
+                messageCell.className = 'text-center py-5';
+                
+                // Determinar el tipo de mensaje y el ícono correspondiente
+                let iconClass = 'bi-inbox';
+                let messageType = '';
+                let titleText = 'No hay datos para mostrar';
+                
+                if (message.toLowerCase().includes('exitoso') || message.toLowerCase().includes('procesado')) {
+                    iconClass = 'bi-check-circle';
+                    messageType = 'success';
+                    titleText = 'Operación completada';
+                } else if (message.toLowerCase().includes('error')) {
+                    iconClass = 'bi-exclamation-triangle';
+                    messageType = 'warning';
+                    titleText = 'Información importante';
+                } else {
+                    messageType = 'info';
+                }
+
+                messageCell.innerHTML = `
+                    <div class="no-data-message ${messageType}">
+                        <i class="bi ${iconClass}"></i>
+                        <h5>${titleText}</h5>
+                        <p>${message}</p>
+                        <small>
+                            <i class="bi bi-info-circle me-1"></i>
+                            La consulta se ejecutó correctamente, pero no se encontraron registros para los criterios especificados.
+                        </small>
+                    </div>
+                `;
+                
+                messageRow.appendChild(messageCell);
+                body.appendChild(messageRow);
+
+                // Ocultar controles de paginación
+                const paginationContainer = document.getElementById('paginationContainer');
+                if (paginationContainer) {
+                    paginationContainer.style.display = 'none';
+                }
+            }
+
+            // Reemplazar la función renderGrid original
+            renderGrid = renderGridOriginal;
+
+            // Nueva función para renderizar la paginación
+            function renderPagination(totalItems) {
+                const paginationContainer = document.getElementById('paginationContainer');
+                const paginationInfo = document.getElementById('paginationInfo');
+                const paginationControls = document.getElementById('paginationControls');
+
+                if (!paginationContainer || !paginationInfo || !paginationControls) return;
+
+                if (totalItems === 0) {
+                    paginationContainer.style.display = 'none';
+                    return;
+                }
+                paginationContainer.style.display = 'flex';
+
+                paginationControls.innerHTML = ''; // Limpiar controles existentes
+
+                // Caso especial para "Mostrar Todos"
+                if (pageSize <= 0) {
+                    paginationInfo.textContent = `Mostrando ${totalItems} registro${totalItems !== 1 ? 's' : ''}`;
+
+                    const ul = document.createElement('ul');
+                    ul.className = 'pagination pagination-sm mb-0';
+                    
+                    const labelLi = document.createElement('li');
+                    labelLi.className = 'page-item disabled';
+                    labelLi.innerHTML = `<span class="page-link">Página</span>`;
+                    ul.appendChild(labelLi);
+
+                    const pageLi = document.createElement('li');
+                    pageLi.className = 'page-item active';
+                    pageLi.innerHTML = `<a class="page-link" href="#">1</a>`;
+                    ul.appendChild(pageLi);
+                    paginationControls.appendChild(ul);
+                    
+                    return; // Fin de la función para este caso
+                }
+
+                const totalPages = Math.ceil(totalItems / pageSize);
+                const startItem = (currentPage - 1) * pageSize + 1;
+                const endItem = Math.min(startItem + pageSize - 1, totalItems);
+
+                paginationInfo.textContent = `Mostrando ${startItem} a ${endItem} de ${totalItems} registros`;
+                
+                const ul = document.createElement('ul');
+                ul.className = 'pagination pagination-sm mb-0'; // mb-0 para alinear
+
+                const labelLi = document.createElement('li');
+                labelLi.className = 'page-item disabled';
+                labelLi.innerHTML = `<span class="page-link">Página</span>`;
+                ul.appendChild(labelLi);
+
+                // Anterior
+                const prevLi = document.createElement('li');
+                prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+                prevLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage - 1}">&laquo;</a>`;
+                ul.appendChild(prevLi);
+
+                // Lógica de paginación tipo GitHub
+                const pages = [];
+                const maxPages = 5;
+                const half = Math.floor(maxPages / 2);
+                let start = currentPage - half;
+                let end = currentPage + half;
+
+                if (start < 1) {
+                    start = 1;
+                    end = Math.min(maxPages, totalPages);
+                }
+                if (end > totalPages) {
+                    end = totalPages;
+                    start = Math.max(1, totalPages - maxPages + 1);
+                }
+
+                if (start > 1) {
+                    pages.push({ page: 1, text: '1' });
+                    if (start > 2) pages.push({ text: '...' });
+                }
+
+                for (let i = start; i <= end; i++) {
+                    pages.push({ page: i, text: i.toString() });
+                }
+
+                if (end < totalPages) {
+                    if (end < totalPages - 1) pages.push({ text: '...' });
+                    pages.push({ page: totalPages, text: totalPages.toString() });
+                }
+
+                pages.forEach(p => {
+                    const pageLi = document.createElement('li');
+                    if (p.page) {
+                        pageLi.className = `page-item ${currentPage === p.page ? 'active' : ''}`;
+                        pageLi.innerHTML = `<a class="page-link" href="#" data-page="${p.page}">${p.text}</a>`;
+                    } else {
+                        pageLi.className = 'page-item disabled';
+                        pageLi.innerHTML = `<span class="page-link">${p.text}</span>`;
+                    }
+                    ul.appendChild(pageLi);
+                });
+
+                // Siguiente
+                const nextLi = document.createElement('li');
+                nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+                nextLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage + 1}">&raquo;</a>`;
+                ul.appendChild(nextLi);
+
+                paginationControls.appendChild(ul);
+            }
+
+            // Event listener para controles de paginación
+            document.getElementById('paginationControls').addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = e.target;
+                if (target.tagName === 'A' && target.hasAttribute('data-page')) {
+                    const page = parseInt(target.getAttribute('data-page'));
+                    if (page > 0 && page <= Math.ceil(filteredGridData.length / pageSize)) {
+                        currentPage = page;
+                        renderGrid(lastGridColumns, undefined, lastGridTitle);
+                        
+                        // Sincronizar checkboxes después de cambiar de página
+                        if (selectedType === 'ares') {
+                            setTimeout(() => syncVisibleCheckboxes(), 200);
+                        }
+                    }
+                }
+            });
+
+            // Event listener para el selector de tamaño de página
+            document.getElementById('pageSizeSelect').addEventListener('change', function () {
+                pageSize = parseInt(this.value);
+                currentPage = 1;
+                renderGrid(lastGridColumns, undefined, lastGridTitle);
+                
+                // Sincronizar checkboxes después de cambiar el tamaño de página
+                if (selectedType === 'ares') {
+                    setTimeout(() => syncVisibleCheckboxes(), 200);
+                }
+            });
+        });
+    </script>
+} 

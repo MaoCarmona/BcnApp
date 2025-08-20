@@ -1,0 +1,91 @@
+@model DotNetBcnModule.Presentation.Models.ConfigurationViewModel
+@{
+    Layout = null; // No layout for partial view
+}
+
+<div class="card">
+    <div class="card-header main-title">
+        <i class="bi bi-gear-fill me-2"></i> Módulo de Configuración
+    </div>
+    <div class="card-body">
+        @if (TempData["Message"] != null)
+        {
+            <div id="config-alert" class="alert @((bool)TempData["IsError"] ? "alert-danger" : "alert-success")" role="alert">
+                @TempData["Message"]
+            </div>
+        }
+        else
+        {
+            <div id="config-alert"></div>
+        }
+
+        @using (Html.BeginForm("Save", "Configuration", FormMethod.Post, new { id = "configForm", @class = "form-horizontal", role = "form" }))
+        {
+            @Html.AntiForgeryToken()
+
+            <h5 class="card-title mt-3"><i class="bi bi-server me-2"></i> Cadenas de Conexión a Bases de Datos</h5>
+            <hr />
+
+            <div class="mb-3 row">
+                @Html.LabelFor(model => model.DBARES, "DB ARES", htmlAttributes: new { @class = "col-sm-3 col-form-label fw-bold" })
+                <div class="col-sm-9">
+                    @Html.TextBoxFor(model => model.DBARES, new { @class = "form-control form-control-sm", placeholder = "Server=...;Database=...;User Id=...;Password=...;" })
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                @Html.LabelFor(model => model.DBAROMSS, "DB ROMSS", htmlAttributes: new { @class = "col-sm-3 col-form-label fw-bold" })
+                <div class="col-sm-9">
+                    @Html.TextBoxFor(model => model.DBAROMSS, new { @class = "form-control form-control-sm", placeholder = "Server=...;Database=...;User Id=...;Password=...;" })
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                @Html.LabelFor(model => model.DBBCN, "DB BCN", htmlAttributes: new { @class = "col-sm-3 col-form-label fw-bold" })
+                <div class="col-sm-9">
+                    @Html.TextBoxFor(model => model.DBBCN, new { @class = "form-control form-control-sm", placeholder = "Server=...;Database=...;User Id=...;Password=...;" })
+                </div>
+            </div>
+
+            <h5 class="card-title mt-4"><i class="bi bi-cloud-arrow-up-fill me-2"></i> Endpoints de Servicios</h5>
+            <hr />
+
+            <div class="mb-3 row">
+                @Html.LabelFor(model => model.URLARES, "URL ARES", htmlAttributes: new { @class = "col-sm-3 col-form-label fw-bold" })
+                <div class="col-sm-9">
+                    @Html.TextBoxFor(model => model.URLARES, new { @class = "form-control form-control-sm", placeholder = "JSON con la configuración del servicio ARES..." })
+                </div>
+            </div>
+
+            <div class="mt-4 text-end">
+                <button type="submit" class="btn btn-primary fw-bold">
+                    <i class="bi bi-floppy2 me-2"></i> Guardar Cambios
+                </button>
+            </div>
+        }
+    </div>
+</div>
+<script>
+    // Script para manejar el guardado con AJAX
+    $(document).ready(function () {
+        $('#configForm').on('submit', function (e) {
+            e.preventDefault(); // Evitar el envío tradicional del formulario
+
+            var form = $(this);
+            var url = form.attr('action');
+
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: form.serialize(),
+                success: function (data) {
+                    // Recargar la vista parcial para mostrar el mensaje de éxito/error
+                    $('#configForm').closest('.card').replaceWith(data);
+                },
+                error: function (xhr, status, error) {
+                    $('#config-alert').html('<div class="alert alert-danger" role="alert">Error al guardar la configuración: ' + error + '</div>');
+                }
+            });
+        });
+    });
+</script> 
