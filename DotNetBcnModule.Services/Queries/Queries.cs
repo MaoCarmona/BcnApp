@@ -16,8 +16,11 @@ namespace NetBcnModule.Services.Queries
         private readonly DatabaseService _romssDatabaseService;
         private readonly DatabaseService _bcnDatabaseService;
 
+        private readonly ILoggingService _loggingService;
+
         public QueriesService(ILoggingService loggingService)
         {
+            _loggingService = loggingService;
             _aresDatabaseService = new DatabaseService(DatabaseTarget.DBARES, loggingService);
             _romssDatabaseService = new DatabaseService(DatabaseTarget.DBAROMSS, loggingService);
             _bcnDatabaseService = new DatabaseService(DatabaseTarget.DBBCN, loggingService);
@@ -92,6 +95,7 @@ namespace NetBcnModule.Services.Queries
                 left join GLOFEDST AS G_RECEPTOR on G_RECEPTOR.DBINDEX = D_RECEPTOR.IND2FEDSTK
                 where 1 = 1
                 AND rtrim(P_RECEPTOR.TAG) <> 'DC Perdidas Emisione'
+                AND rtrim(GLOFEDST.TAG) NOT LIKE '%POLIE%'
                 AND CHARINDEX('-', rtrim(PLOINSTR.TAG)) = 0
                 AND ((DOREVENT.V_CORRCTED + DOREVENT.V_ADJ_SYS + DOREVENT.V_ADJ_USER) + (DOREVENT.W_CORRCTED + DOREVENT.W_ADJ_SYS + DOREVENT.W_ADJ_USER)) > 0 
                 AND DLOEVENT.TIME_END BETWEEN @ConsultaIni AND @ConsultaFin";
@@ -114,11 +118,11 @@ namespace NetBcnModule.Services.Queries
                 , rtrim(P_RECEPTOR.TAG) nmRecDestino
                 , GLOFEDST.DBINDEX as idProdOrigen
                 , rtrim(GLOFEDST.TAG) nmProdOrigen
-                , CONVERT(DECIMAL(18, 4), DOREVENT.V_CORRCTED) vFuente
-                , CONVERT(DECIMAL(18, 4), (DOREVENT.V_CORRCTED + DOREVENT.V_ADJ_SYS + DOREVENT.V_ADJ_USER)) vReconciliado
+                , CONVERT(DECIMAL(10, 2), DOREVENT.V_CORRCTED) vFuente
+                , CONVERT(DECIMAL(10, 2), (DOREVENT.V_CORRCTED + DOREVENT.V_ADJ_SYS + DOREVENT.V_ADJ_USER)) vReconciliado
                 , 'BLS' AS vUM
-                , CONVERT(DECIMAL(18, 4), DOREVENT.W_CORRCTED) wFuente
-                , CONVERT(DECIMAL(18, 4), (DOREVENT.W_CORRCTED + DOREVENT.W_ADJ_SYS + DOREVENT.W_ADJ_USER)) wReconciliado
+                , CONVERT(DECIMAL(10, 2), DOREVENT.W_CORRCTED) wFuente
+                , CONVERT(DECIMAL(10, 2), (DOREVENT.W_CORRCTED + DOREVENT.W_ADJ_SYS + DOREVENT.W_ADJ_USER)) wReconciliado
                 , 'TM' AS wUM
                 from DVRFLOWM
                 join PLOINSTR on PLOINSTR.DBINDEX = DVRFLOWM.IND2INSTR
@@ -237,7 +241,18 @@ namespace NetBcnModule.Services.Queries
                 AND a.AEC_NSV > 0 
                 AND a.AEC_TIMESTAMP = @ConsultaIni";
 
-            return await _romssDatabaseService.QueryAsync<RomssInventoryModel>(sql, new { ConsultaIni = consultaIni });
+            // Log the SQL query being executed
+            var logMessage = $"[ROMSS INVENTORY QUERY] Executing query for date: {consultaIni:yyyy-MM-dd HH:mm:ss}";
+            var sqlWithParams = sql.Replace("@ConsultaIni", $"'{consultaIni:yyyy-MM-dd HH:mm:ss}'");
+            
+            _loggingService.WriteInfo(logMessage);
+            _loggingService.WriteInfo($"[ROMSS INVENTORY QUERY] SQL: {sqlWithParams}");
+
+            var result = await _romssDatabaseService.QueryAsync<RomssInventoryModel>(sql, new { ConsultaIni = consultaIni });
+            
+            _loggingService.WriteInfo($"[ROMSS INVENTORY QUERY] Query executed successfully. Retrieved {result?.Count() ?? 0} records");
+            
+            return result;
         }
 
         /// <summary>
@@ -245,6 +260,11 @@ namespace NetBcnModule.Services.Queries
         /// </summary>
         public async Task<IEnumerable<RomssMovementModel>> GetRomssMovementsAsync(DateTime consultaIni, DateTime consultaFin)
         {
+            // Log the parameters being passed to the query
+            _loggingService.WriteInfo($"[ROMSS MOVEMENTS QUERY] Executing query with parameters:");
+            _loggingService.WriteInfo($"[ROMSS MOVEMENTS QUERY] ConsultaIni: {consultaIni:yyyy-MM-dd HH:mm:ss}");
+            _loggingService.WriteInfo($"[ROMSS MOVEMENTS QUERY] ConsultaFin: {consultaFin:yyyy-MM-dd HH:mm:ss}");
+            
             var sql = @"
                 SELECT Ta.Tag
                 , CONVERT(VARCHAR(20), IIF(CONVERT(VARCHAR(8), Ta.dtMovIni, 108) = '00:00:00', DATEADD(minute, 1, Ta.dtMovIni), Ta.dtMovIni), 120) dtMovIni
@@ -267,177 +287,183 @@ namespace NetBcnModule.Services.Queries
                 , Ta.uomPedido
                 , Ta.cantPedido
                 , 1 idMovSigno
-                FROM ( SELECT DISTINCT mvi.OM_ID Tag
-                             , IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < @ConsultaIni, CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvf.AOM_FINISH_DT) dtMovIni
-                             , mvi.AOM_ACT_FINISH_DT dtMovFin
-                             , mvi.O_CAT_TYPE tpCategoria
-                             , mvi.E_ID_FROM idRecOrigen
-                             , (CASE WHEN eo.ET_ID IN ('TANK', 'TANKS') THEN 'ALMACEN OPERATIVO' 
-                                     WHEN eo.ET_ID IN ('UNITS') THEN 'UNIDAD DE PROCESO'			     
-                                     ELSE 'RECURSO ROMSS'
-                                END) tpRecOrigen
-                             , mvi.C_ID idProdOrigen
-                             , mvi.E_ID_TO idRecDestino
-                             , (CASE WHEN ed.ET_ID IN ('TANK', 'TANKS') THEN 'ALMACEN OPERATIVO' 
-                                     WHEN ed.ET_ID IN ('UNITS') THEN 'UNIDAD DE PROCESO'			     
-                                     ELSE 'RECURSO ROMSS'
-                                END) tpRecDestino
-                             , ISNULL(AT_C_ID2, mvi.C_ID) idProdDestino
-                             , CONVERT(DECIMAL(10, 2), mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0)) vFuente
-                             , 'BLS' vUM
-                             , CONVERT(DECIMAL(10, 2), 0.90718474*(mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0))) wFuente 
-                             , 'TM' wUM
-                             , CONVERT(DECIMAL(10, 1), (CASE WHEN (mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0)) > 0 THEN ((141.5*0.999016) / (((mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0)) / (mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0))) * 6.28981)) - 131.5 ELSE ISNULL(omv.OM_MV_AVG_APIDENS_SYS, 0) END)) API
-                             , ISNULL(mvi.AOM_SAMPLE_NR, '') nbMuestra
-                             , '' numPedido
-                             , '' posPedido
-                             , 'N/A' uomPedido
-                             , 0 cantPedido
-                      FROM ( SELECT ROW_NUMBER() OVER (PARTITION BY OM_ID ORDER BY AOM_FINISH_DT) RN, a.*
-                             FROM offsite.offsite.ACC_ORDER_MV a
-                             WHERE 1 = 1 
-                             AND ((AOM_ACT_START_DT >= @ConsultaIni AND AOM_ACT_START_DT <= @ConsultaFin) OR 
-                                  (AOM_FINISH_DT >= @ConsultaIni AND AOM_FINISH_DT <= @ConsultaFin))
-                            ) mvi
-                      LEFT JOIN ( SELECT ROW_NUMBER() OVER (PARTITION BY OM_ID ORDER BY AOM_FINISH_DT) RN, a.*
-                                  FROM offsite.offsite.ACC_ORDER_MV a
-                                  WHERE 1 = 1 
-                                  AND ((AOM_ACT_START_DT >= @ConsultaIni AND AOM_ACT_START_DT <= @ConsultaFin) OR 
-                                       (AOM_FINISH_DT >= @ConsultaIni AND AOM_FINISH_DT <= @ConsultaFin))
-                                 ) mvf ON (mvi.OM_ID = mvf.OM_ID AND mvi.RN = mvf.RN+1) 
-                      INNER JOIN offsite.offsite.EQUIPMENT eo ON (eo.E_ID = mvi.E_ID_FROM)
-                      INNER JOIN offsite.offsite.EQUIPMENT ed ON (ed.E_ID = mvi.E_ID_TO)
-                      LEFT JOIN offsite.offsite.ORDERS o ON (o.O_ID = mvi.O_ID)
-                      LEFT JOIN offsite.offsite.ORDER_MV omv ON (omv.OM_ID = mvi.OM_ID)
-                      LEFT JOIN ( SELECT ROW_NUMBER() OVER(PARTITION BY AT_TIMESTAMP, OM_ID ORDER BY AT_TRANSDATE DESC) AS nbRN, * 
-                                  FROM offsite.offsite.ACC_TRANS
-                                  WHERE 1 = 1 ) t ON (t.OM_ID = mvi.OM_ID AND t.nbRN = 1)
-                      WHERE 1 = 1
-                      AND mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0) + mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0) <> 0
-                      AND IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < @ConsultaIni, CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvf.AOM_FINISH_DT) >= @ConsultaIni
-                      AND mvi.AOM_FINISH_DT <= @ConsultaFin
-                      AND (ISNULL(o.O_RELEASE_NR, '') = '' OR o.O_RELEASE_NR LIKE 'TAS%')
-                      ) Ta
-                      UNION ALL 
-                      SELECT a.AT_ID Tag
-                             , CONVERT(VARCHAR(20), a.AT_TRANSDATE, 120) dtMovIni
-                             , CONVERT(VARCHAR(20), a.AT_TRANSDATE, 120) dtMovFin
-                             , 'PRIORI' tpCategoria
-                             , a.E_ID idRecOrigen
-                             , 'ALMACEN OPERATIVO' tpRecOrigen 	
-                             , a.C_ID idProdOrigen	     
-                             , a.E_ID idRecDestino
-                             , 'ALMACEN OPERATIVO' tpRecDestino 
-                             , a.AT_C_ID2 idProdDestino	     
-                             , CAST(a.AT_NSV AS DECIMAL(15, 3)) vFuente
-                             , 'BLS' vUM
-                             , CAST(0.90718474*a.AT_NSW AS DECIMAL(15, 3)) wFuente
-                             , 'TM' wUM
-                             , CONVERT(DECIMAL(10, 1), IIF(abs(a.AT_NSV) = 0 or abs(a.AT_NSW) = 0, 0, ((141.5*0.999016) / (((0.90718474*abs(a.AT_NSW)) / abs(a.AT_NSV)) * 6.28981)) - 131.5)) API
-                             , '' nbMuestra
-                             , '' numPedido
-                             , '' posPedido
-                             , 'N/A' uomPedido
-                             , 0 cantPedido
-                             , 1 idMovSigno
-                FROM offsite.offsite.ACC_TRANS a
-                WHERE 1 = 1
-                AND a.AT_TYPE = 10
-                AND a.AT_TIMESTAMP >= @ConsultaIni
-                AND a.AT_TIMESTAMP <= @ConsultaFin
-                AND (abs(a.AT_NSV) + abs(a.AT_NSW)) > 0
-                UNION ALL
-                SELECT CONCAT(CONVERT(VARCHAR(10), EOMONTH(@ConsultaIni), 112), '-', Ta.E_ID) Tag
-                     , CONVERT(DATETIME, EOMONTH(@ConsultaIni), 120) dtMovIni
-                     , DATEADD(second, 86399, CONVERT(DATETIME, EOMONTH(@ConsultaIni), 120)) dtMovFin	
-                     , 'PIEMS' tpCategoria
-                     , Ta.E_ID idRecOrigen
-                     , 'ALMACEN OPERATIVO' tpRecOrigen
-                     , a.C_ID idProdOrigen
-                     , 'PERDIDA IDENTIFICADA' idRecDestino
-                     , 'RECURSO PERDIDA' tpRecDestino
-                     , a.C_ID idProdDestino
-                     , Ta.vFuente
-                     , 'BLS' vUM
-                     , Ta.wFuente
-                     , 'TM' wUM
-                     , CONVERT(DECIMAL(10, 1), IIF(abs(Ta.vFuente) = 0 or abs(Ta.wFuente) = 0, 0, ((141.5*0.999016) / (((0.90718474*abs(Ta.wFuente)) / abs(Ta.vFuente)) * 6.28981)) - 131.5)) API	
-                     , '' nbMuestra	
-                     , '' numPedido	
-                     , '' posPedido	
-                     , 'N/A' uomPedido	
-                     , 0 cantPedido
-                     , 1 idMovSigno
-                FROM ( SELECT t.E_ID
-                             , CONVERT(DECIMAL(10, 2), SUM(ABS(t.AT_NSV))) vFuente
-                             , CONVERT(DECIMAL(10, 2), SUM(ABS(t.AT_NSW*0.90718474))) wFuente
-                             , MAX(t.AT_ID) AT_ID
-                       FROM OFFSITE.offsite.ACC_TRANS t 
-                       WHERE 1 = 1
-                       AND t.AT_TYPE = 14  
-                       AND t.AT_TIMESTAMP >= DATEADD(day, 1, convert(DATETIME, EOMONTH(@ConsultaIni, -1), 120))
-                       AND t.AT_TIMESTAMP < DATEADD(day, 1, EOMONTH(@ConsultaIni))
-                       GROUP BY t.E_ID
-                       ) Ta 
-                INNER JOIN OFFSITE.offsite.ACC_TRANS a ON (Ta.AT_ID = a.AT_ID)
-                WHERE (Ta.vFuente + Ta.wFuente) <> 0
-                UNION ALL
-                SELECT mvi.OM_ID Tag
-                     , IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < @ConsultaIni, CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvf.AOM_FINISH_DT) dtMovIni
-                     , mvi.AOM_ACT_FINISH_DT dtMovFin
-                     , mvi.O_CAT_TYPE tpCategoria
-                     , mvi.E_ID_FROM idRecOrigen
-                     , (CASE WHEN eo.ET_ID IN ('TANK', 'TANKS') THEN 'ALMACEN OPERATIVO' 
-                             WHEN eo.ET_ID IN ('UNITS') THEN 'UNIDAD DE PROCESO'			     
-                             ELSE 'RECURSO ROMSS' END) tpRecOrigen
-                     , (CASE WHEN ed.ET_ID IN ('TANK', 'TANKS', 'UNITS') THEN ed.C_ID ELSE mvi.C_ID END) idProdOrigen
-                     , mvi.E_ID_TO idRecDestino
-                     , (CASE WHEN ed.ET_ID IN ('TANK', 'TANKS') THEN 'ALMACEN OPERATIVO' 
-                             WHEN ed.ET_ID IN ('UNITS') THEN 'UNIDAD DE PROCESO'			     
-                             ELSE 'RECURSO ROMSS' END) tpRecDestino
-                     , (CASE WHEN ISNULL(a.AT_TYPE, 0) IN (3, 4) THEN a.AT_C_ID2 ELSE mvi.C_ID END) idProdDestino			 
-                     , CONVERT(DECIMAL(10, 2), mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0)) vFuente
-                     , 'BLS' vUM
-                     , CONVERT(DECIMAL(10, 2), 0.90718474*(mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0))) wFuente 
-                     , 'TM' wUM
-                     , CONVERT(DECIMAL(10, 1), (CASE WHEN (mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0)) > 0 THEN ((141.5*0.999016) / (((mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0)) / (mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0))) * 6.28981)) - 131.5 ELSE ISNULL(omv.OM_MV_AVG_APIDENS_SYS, 0) END)) API
-                     , ISNULL(mvi.AOM_SAMPLE_NR, '') nbMuestra
-                     , o.O_RELEASE_NR numPedido
-                     , m.SAP_POSITION_ID posPedido
-                     , IIF(UPPER(u.SOURCE_UOM) = 'BBLS', 'BLS', u.SOURCE_UOM) uomPedido
-                     , CONVERT(DECIMAL(15, 2), IIF(UPPER(u.TARGET_UOM) = 'BBLS', (isnull(mvi.AOM_REPORT_NSV, 0) - isnull(mvf.AOM_REPORT_NSV, 0)), (isnull(mvi.AOM_REPORT_NSW, 0) - isnull(mvf.AOM_REPORT_NSW, 0)))/u.FACTOR) cantPedido
-                     , 1 idMovSigno
+            FROM ( SELECT DISTINCT mvi.OM_ID Tag
+                        , IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < @ConsultaIni, CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvf.AOM_FINISH_DT) dtMovIni
+                        , mvi.AOM_ACT_FINISH_DT dtMovFin
+                        , mvi.O_CAT_TYPE tpCategoria
+                        , mvi.E_ID_FROM idRecOrigen
+                        , (CASE WHEN eo.ET_ID IN ('TANK', 'TANKS') THEN 'ALMACEN OPERATIVO' 
+                                WHEN eo.ET_ID IN ('UNITS') THEN 'UNIDAD DE PROCESO'			     
+                                ELSE 'RECURSO ROMSS'
+                            END) tpRecOrigen
+                        , mvi.C_ID idProdOrigen
+                        , mvi.E_ID_TO idRecDestino
+                        , (CASE WHEN ed.ET_ID IN ('TANK', 'TANKS') THEN 'ALMACEN OPERATIVO' 
+                                WHEN ed.ET_ID IN ('UNITS') THEN 'UNIDAD DE PROCESO'			     
+                                ELSE 'RECURSO ROMSS'
+                            END) tpRecDestino
+                        , ISNULL(AT_C_ID2, mvi.C_ID) idProdDestino
+                        , CONVERT(DECIMAL(10, 2), mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0)) vFuente
+                                , 'BLS' vUM
+                        , CONVERT(DECIMAL(10, 2), 0.90718474*(mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0))) wFuente 
+                                , 'TM' wUM
+                                , CONVERT(DECIMAL(10, 1), (CASE WHEN (mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0)) > 0 THEN ((141.5*0.999016) / (((mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0)) / (mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0))) * 6.28981)) - 131.5 ELSE ISNULL(omv.OM_MV_AVG_APIDENS_SYS, 0) END)) API
+                                , ISNULL(mvi.AOM_SAMPLE_NR, '') nbMuestra
+                                , '' numPedido
+                                , '' posPedido
+                                , 'N/A' uomPedido
+                                , 0 cantPedido
                 FROM ( SELECT ROW_NUMBER() OVER (PARTITION BY OM_ID ORDER BY AOM_FINISH_DT) RN, a.*
-                       FROM offsite.offsite.ACC_ORDER_MV a
-                       WHERE 1 = 1 
-                       AND ((AOM_ACT_START_DT >= @ConsultaIni AND AOM_ACT_START_DT <= @ConsultaFin) OR 
+                        FROM offsite.offsite.ACC_ORDER_MV a
+                        WHERE 1 = 1 
+                        AND ((AOM_ACT_START_DT >= @ConsultaIni AND AOM_ACT_START_DT <= @ConsultaFin) OR 
                             (AOM_FINISH_DT >= @ConsultaIni AND AOM_FINISH_DT <= @ConsultaFin))
-                      ) mvi
+                        ) mvi
                 LEFT JOIN ( SELECT ROW_NUMBER() OVER (PARTITION BY OM_ID ORDER BY AOM_FINISH_DT) RN, a.*
                             FROM offsite.offsite.ACC_ORDER_MV a
                             WHERE 1 = 1 
                             AND ((AOM_ACT_START_DT >= @ConsultaIni AND AOM_ACT_START_DT <= @ConsultaFin) OR 
-                                 (AOM_FINISH_DT >= @ConsultaIni AND AOM_FINISH_DT <= @ConsultaFin))
+                                (AOM_FINISH_DT >= @ConsultaIni AND AOM_FINISH_DT <= @ConsultaFin))
                             ) mvf ON (mvi.OM_ID = mvf.OM_ID AND mvi.RN = mvf.RN+1) 
                 INNER JOIN offsite.offsite.EQUIPMENT eo ON (eo.E_ID = mvi.E_ID_FROM)
                 INNER JOIN offsite.offsite.EQUIPMENT ed ON (ed.E_ID = mvi.E_ID_TO)
-                LEFT JOIN offsite.offsite.ACC_TRANS a ON a.om_id = mvi.OM_ID
                 LEFT JOIN offsite.offsite.ORDERS o ON (o.O_ID = mvi.O_ID)
                 LEFT JOIN offsite.offsite.ORDER_MV omv ON (omv.OM_ID = mvi.OM_ID)
-                INNER JOIN BARRANCA.SAP.SAP_MOVEMENT m ON (m.SAP_ORDER_ID = o.O_RELEASE_NR)
-                INNER JOIN BARRANCA.sap.SAP_UOM_CONVERSION u ON (m.SAP_UOM = u.SOURCE_UOM AND u.ORIGINATOR = 'SAP')
-                INNER JOIN barranca.intg.parameters_category pc ON (pc.O_CAT_TYPE = mvi.O_CAT_TYPE)
-                WHERE 1 = IIF (pc.SOURCE_TYPE = 'Compras', 
-                               IIF( IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < @ConsultaIni, CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvF.AOM_FINISH_DT) >= CONVERT(DATETIME, CONCAT(CONVERT(VARCHAR(10), m.SAP_STARTTIME, 120), ' 00:00:00'))
-                                    AND IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < @ConsultaIni, CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvF.AOM_FINISH_DT) <= CONVERT(DATETIME, CONCAT(CONVERT(VARCHAR(10), m.SAP_ENDTIME, 120), ' 23:59:59'))
-                               , 1, 0), 1)     
-                AND pc.REPORT_NAME = 'RepIntROMSS_ARES'
-                AND pc.TAG_ID = 'Pedidos'
-                AND omv.MSS_STATUS <> 'DELETED'
-                AND ((mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0)) + (mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0))) > 0
-                AND mvi.MSS_STATUS = 'CLOSED'";
+                LEFT JOIN ( SELECT ROW_NUMBER() OVER(PARTITION BY AT_TIMESTAMP, OM_ID ORDER BY AT_TRANSDATE DESC) AS nbRN, * 
+                            FROM offsite.offsite.ACC_TRANS
+                            WHERE 1 = 1 ) t ON (t.OM_ID = mvi.OM_ID AND t.nbRN = 1)
+                WHERE 1 = 1
+                AND mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0) + mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0) <> 0
+                AND IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < @ConsultaIni, CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvf.AOM_FINISH_DT) >= @ConsultaIni
+                AND mvi.AOM_FINISH_DT <= @ConsultaFin
+                AND (ISNULL(o.O_RELEASE_NR, '') = '' OR o.O_RELEASE_NR LIKE 'TAS%')
+                ) Ta
+                UNION ALL 
+                SELECT a.AT_ID Tag
+                    , CONVERT(VARCHAR(20), a.AT_TRANSDATE, 120) dtMovIni
+                    , CONVERT(VARCHAR(20), a.AT_TRANSDATE, 120) dtMovFin
+                    , 'PRIORI' tpCategoria
+                    , a.E_ID idRecOrigen
+                    , 'ALMACEN OPERATIVO' tpRecOrigen 	
+                    , a.C_ID idProdOrigen	     
+                    , a.E_ID idRecDestino
+                    , 'ALMACEN OPERATIVO' tpRecDestino 
+                    , a.AT_C_ID2 idProdDestino	     
+                    , CAST(a.AT_NSV AS DECIMAL(15, 3)) vFuente
+                    , 'BLS' vUM
+                    , CAST(0.90718474*a.AT_NSW AS DECIMAL(15, 3)) wFuente
+                    , 'TM' wUM
+                    , CONVERT(DECIMAL(10, 1), IIF(abs(a.AT_NSV) = 0 or abs(a.AT_NSW) = 0, 0, ((141.5*0.999016) / (((0.90718474*abs(a.AT_NSW)) / abs(a.AT_NSV)) * 6.28981)) - 131.5)) API
+                    , '' nbMuestra
+                    , '' numPedido
+                    , '' posPedido
+                    , 'N/A' uomPedido
+                    , 0 cantPedido
+                            , 1 idMovSigno
+            FROM offsite.offsite.ACC_TRANS a
+            WHERE 1 = 1
+            AND a.AT_TYPE = 10
+            AND a.AT_TIMESTAMP >= @ConsultaIni
+            AND a.AT_TIMESTAMP <= @ConsultaFin
+            AND (abs(a.AT_NSV) + abs(a.AT_NSW)) > 0
+            UNION ALL
+            SELECT Ta.AT_ID Tag
+                , Ta.AT_TIMESTAMP dtMovIni
+                , Ta.AT_TIMESTAMP dtMovFin	
+                , 'PIEMS' tpCategoria
+                , Ta.E_ID idRecOrigen
+                , 'ALMACEN OPERATIVO' tpRecOrigen
+                , a.C_ID idProdOrigen
+                , 'PERDIDA IDENTIFICADA' idRecDestino
+                , 'RECURSO PERDIDA' tpRecDestino
+                , a.C_ID idProdDestino
+                , Ta.vFuente
+                , 'BLS' vUM
+                , Ta.wFuente
+                , 'TM' wUM
+                , CONVERT(DECIMAL(10, 1), IIF(abs(Ta.vFuente) = 0 or abs(Ta.wFuente) = 0, 0, ((141.5*0.999016) / (((0.90718474*abs(Ta.wFuente)) / abs(Ta.vFuente)) * 6.28981)) - 131.5)) API	
+                , '' nbMuestra	
+                , '' numPedido	
+                , '' posPedido	
+                , 'N/A' uomPedido	
+                , 0 cantPedido
+                    , 1 idMovSigno
+            FROM ( SELECT t.AT_ID
+                        , t.E_ID
+                        , t.AT_TIMESTAMP
+                    , CONVERT(DECIMAL(10, 3), ABS(t.AT_NSV)) vFuente
+                    , CONVERT(DECIMAL(10, 3), ABS(t.AT_NSW*0.90718474)) wFuente
+                FROM OFFSITE.offsite.ACC_TRANS t 
+                WHERE 1 = 1
+                AND t.AT_TYPE = 14  
+                AND t.AT_TIMESTAMP >= @ConsultaIni
+                AND t.AT_TIMESTAMP < @ConsultaFin
+                ) Ta 
+            INNER JOIN OFFSITE.offsite.ACC_TRANS a ON (Ta.AT_ID = a.AT_ID)
+            WHERE 1 = 1
+            AND Ta.vFuente >= 0.001
+            UNION ALL
+            SELECT mvi.OM_ID Tag
+                , IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < @ConsultaIni, CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvf.AOM_FINISH_DT) dtMovIni
+                , mvi.AOM_ACT_FINISH_DT dtMovFin
+                , mvi.O_CAT_TYPE tpCategoria
+                , mvi.E_ID_FROM idRecOrigen
+                , (CASE WHEN eo.ET_ID IN ('TANK', 'TANKS') THEN 'ALMACEN OPERATIVO' 
+                    WHEN eo.ET_ID IN ('UNITS') THEN 'UNIDAD DE PROCESO'			     
+                        ELSE 'RECURSO ROMSS' END) tpRecOrigen
+                , (CASE WHEN ed.ET_ID IN ('TANK', 'TANKS', 'UNITS') THEN ed.C_ID ELSE mvi.C_ID END) idProdOrigen
+                , mvi.E_ID_TO idRecDestino
+                , (CASE WHEN ed.ET_ID IN ('TANK', 'TANKS') THEN 'ALMACEN OPERATIVO' 
+                    WHEN ed.ET_ID IN ('UNITS') THEN 'UNIDAD DE PROCESO'			     
+                        ELSE 'RECURSO ROMSS' END) tpRecDestino
+                , (CASE WHEN ISNULL(a.AT_TYPE, 0) IN (3, 4) THEN a.AT_C_ID2 ELSE mvi.C_ID END) idProdDestino			 
+                , CONVERT(DECIMAL(10, 2), mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0)) vFuente
+                , 'BLS' vUM
+                , CONVERT(DECIMAL(10, 2), 0.90718474*(mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0))) wFuente 
+                , 'TM' wUM
+                , CONVERT(DECIMAL(10, 1), (CASE WHEN (mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0)) > 0 THEN ((141.5*0.999016) / (((mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0)) / (mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0))) * 6.28981)) - 131.5 ELSE ISNULL(omv.OM_MV_AVG_APIDENS_SYS, 0) END)) API
+                , ISNULL(mvi.AOM_SAMPLE_NR, '') nbMuestra
+                , o.O_RELEASE_NR numPedido
+                , m.SAP_POSITION_ID posPedido
+                , IIF(UPPER(u.SOURCE_UOM) = 'BBLS', 'BLS', u.SOURCE_UOM) uomPedido
+                , CONVERT(DECIMAL(15, 2), IIF(UPPER(u.TARGET_UOM) = 'BBLS', (isnull(mvi.AOM_REPORT_NSV, 0) - isnull(mvf.AOM_REPORT_NSV, 0)), (isnull(mvi.AOM_REPORT_NSW, 0) - isnull(mvf.AOM_REPORT_NSW, 0)))/u.FACTOR) cantPedido
+                , 1 idMovSigno
+            FROM ( SELECT ROW_NUMBER() OVER (PARTITION BY OM_ID ORDER BY AOM_FINISH_DT) RN, a.*
+                FROM offsite.offsite.ACC_ORDER_MV a
+                WHERE 1 = 1 
+                AND ((AOM_ACT_START_DT >= @ConsultaIni AND AOM_ACT_START_DT <= @ConsultaFin) OR 
+                        (AOM_FINISH_DT >= @ConsultaIni AND AOM_FINISH_DT <= @ConsultaFin))
+                ) mvi
+            LEFT JOIN ( SELECT ROW_NUMBER() OVER (PARTITION BY OM_ID ORDER BY AOM_FINISH_DT) RN, a.*
+                    FROM offsite.offsite.ACC_ORDER_MV a
+                    WHERE 1 = 1 
+                        AND ((AOM_ACT_START_DT >= @ConsultaIni AND AOM_ACT_START_DT <= @ConsultaFin) OR 
+                            (AOM_FINISH_DT >= @ConsultaIni AND AOM_FINISH_DT <= @ConsultaFin))
+                        ) mvf ON (mvi.OM_ID = mvf.OM_ID AND mvi.RN = mvf.RN+1) 
+            INNER JOIN offsite.offsite.EQUIPMENT eo ON (eo.E_ID = mvi.E_ID_FROM)
+            INNER JOIN offsite.offsite.EQUIPMENT ed ON (ed.E_ID = mvi.E_ID_TO)
+            LEFT JOIN offsite.offsite.ACC_TRANS a ON a.om_id = mvi.OM_ID
+            LEFT JOIN offsite.offsite.ORDERS o ON (o.O_ID = mvi.O_ID)
+            LEFT JOIN offsite.offsite.ORDER_MV omv ON (omv.OM_ID = mvi.OM_ID)
+            INNER JOIn BARRANCA.SAP.SAP_MOVEMENT m ON (m.SAP_ORDER_ID = o.O_RELEASE_NR)
+            INNER JOIN BARRANCA.sap.SAP_UOM_CONVERSION u ON (m.SAP_UOM = u.SOURCE_UOM AND u.ORIGINATOR = 'SAP')
+            INNER JOIN barranca.intg.parameters_category pc ON (pc.O_CAT_TYPE = mvi.O_CAT_TYPE)
+            WHERE 1 = IIF (pc.SOURCE_TYPE = 'Compras', 
+                        IIF( IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < @ConsultaIni, CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvF.AOM_FINISH_DT) >= CONVERT(DATETIME, CONCAT(CONVERT(VARCHAR(10), m.SAP_STARTTIME, 120), ' 00:00:00'))
+                                AND IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < @ConsultaIni, CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvF.AOM_FINISH_DT) <= CONVERT(DATETIME, CONCAT(CONVERT(VARCHAR(10), m.SAP_ENDTIME, 120), ' 23:59:59'))
+                        , 1, 0), 1)     
+            AND pc.REPORT_NAME = 'RepIntROMSS_ARES'
+            AND pc.TAG_ID = 'Pedidos'
+            AND omv.MSS_STATUS <> 'DELETED'
+            -- AND mvi.OM_ID IN ('20250303-16201', '20250303-16202', '20250226-15901', '20250310-15801', '20250310-15802', '20250304-15901', '20250304-16001', '20250304-16101', '20250310-15803', '20250311-15801')
+            AND ((mvi.AOM_REPORT_NSW - isnull(mvf.AOM_REPORT_NSW, 0)) + (mvi.AOM_REPORT_NSV - isnull(mvf.AOM_REPORT_NSV, 0))) > 0
+            AND mvi.MSS_STATUS = 'CLOSED'";
 
-            return await _romssDatabaseService.QueryAsync<RomssMovementModel>(sql, new { ConsultaIni = consultaIni, ConsultaFin = consultaFin });
+            var result = await _romssDatabaseService.QueryAsync<RomssMovementModel>(sql, new { ConsultaIni = consultaIni, ConsultaFin = consultaFin });
+            
+            _loggingService.WriteInfo($"[ROMSS MOVEMENTS QUERY] Query executed successfully. Retrieved {sql} records");
+            
+            return result;
         }
 
         #endregion
@@ -588,29 +614,13 @@ namespace NetBcnModule.Services.Queries
         /// </summary>
         public async Task<IEnumerable<BcnConsolidatedBalanceModel>> GetBcnConsolidatedBalanceAsync(DateTime consultaIni, DateTime consultaFin, string tpMovimiento)
         {
+            var consultaInistr = consultaIni.ToString("yyyy-MM-dd HH:mm:ss");
+            var consultaFinstr = consultaFin.ToString("yyyy-MM-dd HH:mm:ss");
             var sql = @"
-                SELECT a.idRecurso, a.nbRecurso, a.nmRecurso, a.UM UMBalance
-                     , ISNULL(InvIni.InvVolIni, 0) InvIniVol
-	                 , ISNULL(MovEnt.vlVolEnt, 0) vlVolEntVol
-	                 , ISNULL(MovSal.vlVolSal, 0) vlVolSalVol
-                     , ISNULL(InvFin.InvVolFin, 0) InvFinVol 
-                     , ((ISNULL(InvFin.InvVolFin, 0) + ISNULL(MovSal.vlVolSal, 0)) - (ISNULL(InvIni.InvVolIni, 0) + ISNULL(MovEnt.vlVolEnt, 0))) vlDesbalanceVol
-	                 , 'BLS' UMVol
-                     , ISNULL(InvIni.InvMasIni, 0) InvIniMas
-	                 , ISNULL(MovEnt.vlMasEnt, 0) vlVolEntMas
-	                 , ISNULL(MovSal.vlMasSal, 0) vlVolSalMas
-                     , ISNULL(InvFin.InvMasFin, 0) InvFinMas
-                     , ((ISNULL(InvFin.InvMasFin, 0) + ISNULL(MovSal.vlMasSal, 0)) - (ISNULL(InvIni.InvMasIni, 0) + ISNULL(MovEnt.vlMasEnt, 0))) vlDesbalanceMas
-	                 , 'TM' UMMas
-                FROM bcn.jerarquiarecursos_vw a
-                LEFT JOIN (SELECT idRecAlmacen, CantVolTotal InvVolIni, CantMasTotal InvMasIni FROM bcn.mInventarios WHERE idCaso = 5 AND dtInventario = DATEADD(MINUTE, -1, @ConsultaIni) ) InvIni ON  InvIni.idRecAlmacen = a.idRecurso
-                LEFT JOIN (SELECT idRecAlmacen, CantVolTotal InvVolFin, CantMasTotal InvMasFin FROM bcn.mInventarios WHERE idCaso = 5 AND dtInventario = DATEADD(SECOND, -59, @ConsultaFin) ) InvFin ON  InvFin.idRecAlmacen = a.idRecurso
-                LEFT JOIN (SELECT idRecDestino, SUM(vlCantVolConciliado) vlVolEnt, SUM(vlCantMasConciliado) vlMasEnt FROM bcn.mMovimientos WHERE idCaso = 5 AND dtMovimientoIni >= @ConsultaIni AND dtMovimientoFin <= @ConsultaFin GROUP BY idRecDestino) MovEnt ON MovEnt.idRecDestino = a.idRecurso
-                LEFT JOIN (SELECT idRecOrigen, SUM(vlCantVolConciliado) vlVolSal, SUM(vlCantMasConciliado) vlMasSal FROM bcn.mMovimientos WHERE idCaso = 5 AND dtMovimientoIni >= @ConsultaIni AND dtMovimientoFin <= @ConsultaFin GROUP BY idRecOrigen) MovSal ON MovSal.idRecOrigen = a.idRecurso
-                WHERE 1 = 1
-                AND a.Clase = 'BALANCE CONSOLIDADO'
-                AND a.tpRecurso = @TpMovimiento
-                ORDER BY a.Orden, a.nmRecurso";
+                SELECT * FROM BCN.getBalanceConsolidado('@ConsultaIni', '@ConsultaFin', '@TpMovimiento')";
+            sql = sql.Replace("@ConsultaIni", consultaInistr);
+            sql = sql.Replace("@ConsultaFin", consultaFinstr);
+            sql = sql.Replace("@TpMovimiento", tpMovimiento);
 
             return await _bcnDatabaseService.QueryAsync<BcnConsolidatedBalanceModel>(sql, new { ConsultaIni = consultaIni, ConsultaFin = consultaFin, TpMovimiento = tpMovimiento });
         }
@@ -823,7 +833,7 @@ namespace NetBcnModule.Services.Queries
                 , ml.nbProdLogDestino
                 , ml.vlContable
                 , ml.idUM 
-                , ml.idCentroCosto
+                , ml.nbCentroCosto
                 , (CASE WHEN ml.vlAtrCalidad IS NULL THEN '' ELSE ml.idAtrCalidad END)  idAtrCalidad  
                 , (CASE WHEN ml.vlAtrCalidad IS NULL THEN '' ELSE CAST(ROUND(ml.vlAtrCalidad, 3) AS VARCHAR(15)) END) vlAtrCalidad  
                 , (CASE WHEN ml.vlAtrCalidad IS NULL THEN '' ELSE ml.idUMAtrCalidad END) idUMAtrCalidad

@@ -70,10 +70,10 @@ namespace NetBcnModule.Presentation.Controllers
                     switch (option)
                     {
                         case "01": return "AORA: Inventario operativo";
-                        case "02": return "AORA: Movimientos operativo";
+                        case "02": return "AORA: Movimientos operativos";
                         case "03": return "AORA: Flujos operativo";
                         case "04": return "ROMSS: Inventario operativo";
-                        case "05": return "ROMSS: Movimientos operativo";
+                        case "05": return "ROMSS: Movimientos operativos";
                         case "06": return "BCN: Foto inventario operativo";
                         case "07": return "ARES: Movimientos HPI";
                         case "08": return "BCN: Balance operativo";
@@ -88,8 +88,9 @@ namespace NetBcnModule.Presentation.Controllers
                         case "04": return "BCN: Balance POOL";
                         case "05": return "BCN: Balance UNIDAD DE PROCESO";
                         case "06": return "BCN: Foto inventario";
-                        case "07": return "BCN: Aplicar Regla de Balance";
-                        case "08": return "BCN: Diferencia Balance";
+                        case "07": return "BCN: Corregir Bal. Sig. Contrario";
+                        case "08": return "BCN: Aplicar Regla de Balance";
+                        case "09": return "BCN: Diferencia Balance";
                         default: return "Consolidar Información";
                     }
                 case "logistica":
@@ -105,13 +106,13 @@ namespace NetBcnModule.Presentation.Controllers
                 case "ares":
                     switch (option)
                     {
-                        case "01": return "Inventario logístico";
-                        case "02": return "Movimiento logístico";
-                        case "03": return "Movimiento de costos";
-                        case "04": return "Rev. Procesamiento Logistico";
-                        case "05": return "Rev. Procesamiento Costo";
-                        case "06": return "Rev. Comparativo Inventario";
-                        case "07": return "Rev. Comparativo Costos";
+                        case "01": return "BCN: Inventario logístico";
+                        case "02": return "BCN: Movimiento logístico";
+                        case "03": return "BCN: Movimiento de costos";
+                        case "04": return "ARES: Rev. Procesamiento Logistico";
+                        case "05": return "ARES: Rev. Procesamiento Costo";
+                        case "06": return "BCN: Comparativo Inventario";
+                        case "07": return "BCN: Comparativo Costos";
                         default: return "Envío BCN WS-ARES";
                     }
                 default:
@@ -119,10 +120,31 @@ namespace NetBcnModule.Presentation.Controllers
             }
         }
 
-        private (DateTime? startDate, DateTime? endDate) NormalizeDateRange(string fechaIni, string fechaFin)
+        // private (DateTime? startDate, DateTime? endDate) NormalizeDateRange(string fechaIni, string fechaFin)
+        // {
+        //     DateTime? consultaIni = string.IsNullOrEmpty(fechaIni) ? (DateTime?)null : DateTime.Parse(fechaIni);
+        //     DateTime? consultaFin = string.IsNullOrEmpty(fechaFin) ? (DateTime?)null : DateTime.Parse(fechaFin);
+
+        //     if (consultaIni.HasValue)
+        //     {
+        //         consultaIni = consultaIni.Value.Date; // Already 00:00:00
+        //     }
+        //     if (consultaFin.HasValue)
+        //     {
+        //         consultaFin = consultaFin.Value.Date.AddHours(23).AddMinutes(59).AddSeconds(59);
+        //     }
+
+        //     return (consultaIni, consultaFin);
+        // }
+
+        /// <summary>
+        /// Normalize date range for specific operations that need different date handling
+        /// This replicates Python's exact behavior for different option types
+        /// </summary>
+        private (DateTime? startDate, DateTime? endDate) NormalizeDateRangeForOption(string fechaIni, string fechaFin, string option, bool useInitialDate, bool isConsolidated = false)
         {
-            DateTime? consultaIni = string.IsNullOrEmpty(fechaIni) ? (DateTime?)null : DateTime.Parse(fechaIni);
-            DateTime? consultaFin = string.IsNullOrEmpty(fechaFin) ? (DateTime?)null : DateTime.Parse(fechaFin);
+            DateTime? consultaIni = string.IsNullOrEmpty(fechaIni) ? (DateTime?)null : DateTime.ParseExact(fechaIni, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            DateTime? consultaFin = string.IsNullOrEmpty(fechaFin) ? (DateTime?)null : DateTime.ParseExact(fechaFin, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
             if (consultaIni.HasValue)
             {
@@ -136,14 +158,190 @@ namespace NetBcnModule.Presentation.Controllers
             return (consultaIni, consultaFin);
         }
 
-        private async Task<QueryResult> IntegrarView(string option, string fechaIni, string fechaFin, bool useInitialDate = false)
+        /// <summary>
+        /// Normalize date range for consolidar information operations with specific rules
+        /// Replicates Python InfConsolidado behavior exactly
+        /// </summary>
+        private (DateTime? startDate, DateTime? endDate) NormalizeDateRangeForConsolidarOption(string fechaIni, string fechaFin, string option, bool useInitialDate)
+        {
+            DateTime? consultaIni = string.IsNullOrEmpty(fechaIni) ? (DateTime?)null : DateTime.ParseExact(fechaIni, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            DateTime? consultaFin = string.IsNullOrEmpty(fechaFin) ? (DateTime?)null : DateTime.ParseExact(fechaFin, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+
+            if (!consultaIni.HasValue || !consultaFin.HasValue)
+            {
+                return (consultaIni, consultaFin);
+            }
+
+            switch (option)
+            {
+                case "01": // BCN: Inventarios consolidados
+                case "06": // BCN: Foto inventarios consolidados
+                    if (useInitialDate)
+                    {
+                        // Python: vFechaAux = datetime.strptime(dtFechaIni, vdtFormato) + timedelta(minutes = -1)
+                        consultaIni = consultaIni.Value.AddMinutes(-1);
+                        _loggingService.WriteInfo($"BCN Inventario Consolidado Inicial - Aplicando regla Python: {fechaIni} -> {FormatDateTime(consultaIni)}");
+                    }
+                    else
+                    {
+                        // Python: vFechaAux = datetime.strptime(dtFechaFin, vdtFormato) + timedelta(seconds =-59)
+                        consultaFin = consultaFin.Value.AddSeconds(-59);
+                        _loggingService.WriteInfo($"BCN Inventario Consolidado Final - Aplicando regla Python: {fechaFin} -> {FormatDateTime(consultaFin)}");
+                    }
+                    break;
+
+                case "02": // BCN: Movimientos consolidados
+                case "03": // BCN: Balance ALMACEN
+                case "04": // BCN: Balance POOL
+                case "05": // BCN: Balance UNIDAD DE PROCESO
+                case "07": // BCN: Corregir Balance Signo Contrario
+                case "08": // BCN: Aplicar Regla de Balance
+                case "09": // BCN: Diferencia Balance
+                    // Python: usar fechas tal como están, sin modificaciones
+                    _loggingService.WriteInfo($"BCN Consolidado Movimientos/Balance - Aplicando regla Python: fechas sin modificar");
+                    break;
+
+                default:
+                    _loggingService.WriteInfo($"Opción consolidar {option} - Sin reglas específicas, usando fechas tal como están");
+                    break;
+            }
+
+            return (consultaIni, consultaFin);
+        }
+
+        /// <summary>
+        /// Normalize date range for integrar information operations with specific rules
+        /// 
+        /// Para ROMSS (opción 04):
+        /// - Si viewDataIntegrar = true (botón Visualizar): Aplica reglas de AORA
+        ///   - RN01: Inventario Inicial - descontar 1 minuto a Fecha Desde
+        ///   - RN02: Inventario Final - descontar 59 segundos a Fecha Final
+        /// - Si viewDataIntegrar = false (botón Ejecutar): Aplica reglas específicas de ROMSS
+        ///   - RN04: Inventario Inicial - usar Fecha Desde tal como está
+        ///   - RN05: Inventario Final - aumentar 1 segundo a Fecha Final
+        /// 
+        /// Para otras opciones:
+        /// RN03: AORA Movimientos/Flujos - usar fechas tal como están
+        /// RN07: ROMSS Movimientos/Flujos - usar fechas tal como están
+        /// </summary>
+        private (DateTime? startDate, DateTime? endDate) NormalizeDateRangeForIntegrarOption(string fechaIni, string fechaFin, string option, bool useInitialDate, bool viewDataIntegrar)
+        {
+            DateTime? consultaIni = string.IsNullOrEmpty(fechaIni) ? (DateTime?)null : DateTime.ParseExact(fechaIni, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            DateTime? consultaFin = string.IsNullOrEmpty(fechaFin) ? (DateTime?)null : DateTime.ParseExact(fechaFin, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+
+            if (!consultaIni.HasValue || !consultaFin.HasValue)
+            {
+                return (consultaIni, consultaFin);
+            }
+
+            // Aplicar reglas específicas según la opción y el tipo de fecha
+            switch (option)
+            {
+                case "01": // AORA: Inventario operativo
+                    if (useInitialDate)
+                    {
+                        // RN01: Inventario Inicial - descontar 1 minuto a Fecha Desde
+                        consultaIni = consultaIni.Value.AddMinutes(-1);
+                        _loggingService.WriteInfo($"AORA Inventario Inicial - Aplicando RN01: {fechaIni} -> {FormatDateTime(consultaIni)}");
+                    }
+                    else
+                    {
+                        // RN02: Inventario Final - descontar 59 segundos a Fecha Final
+                        consultaFin = consultaFin.Value.AddSeconds(-59);
+                        _loggingService.WriteInfo($"AORA Inventario Final - Aplicando RN02: {fechaFin} -> {FormatDateTime(consultaFin)}");
+                    }
+                    break;
+
+                case "04": // ROMSS: Inventario operativo
+                    if (viewDataIntegrar)
+                     {
+                         // Para visualización, ROMSS usa las reglas de AORA
+                         if (useInitialDate)
+                         {
+                             // RN01: Inventario Inicial - descontar 1 minuto a Fecha Desde
+                             consultaIni = consultaIni.Value.AddMinutes(-1);
+                             _loggingService.WriteInfo($"ROMSS Inventario Inicial (Visualizar) - Aplicando RN01: {fechaIni} -> {FormatDateTime(consultaIni)}");
+                         }
+                         else
+                         {
+                             // RN02: Inventario Final - descontar 59 segundos a Fecha Final
+                             consultaFin = consultaFin.Value.AddSeconds(-59);
+                             _loggingService.WriteInfo($"ROMSS Inventario Final (Visualizar) - Aplicando RN02: {fechaFin} -> {FormatDateTime(consultaFin)}");
+                         }
+                     }
+                    else
+                    {
+                        // Para ejecución, ROMSS usa sus reglas específicas
+                        if (useInitialDate)
+                        {
+                            // RN04: Inventario Inicial - usar Fecha Desde tal como está
+                            _loggingService.WriteInfo($"ROMSS Inventario Inicial (Ejecutar) - Aplicando RN04: {fechaIni} -> {FormatDateTime(consultaIni)}");
+                        }
+                        else
+                        {
+                            // RN05: Inventario Final - aumentar 1 segundo a Fecha Final
+                            consultaFin = consultaFin.Value.AddSeconds(1);
+                            _loggingService.WriteInfo($"ROMSS Inventario Final (Ejecutar) - Aplicando RN05: {fechaFin} -> {FormatDateTime(consultaFin)}");
+                        }
+                    }
+                    break;
+                    
+
+                case "02": // AORA: Movimientos operativo
+                case "03": // AORA: Flujos operativo
+                    // RN03: Movimientos y Flujos - usar fechas tal como están
+                    _loggingService.WriteInfo($"AORA Movimientos/Flujos - Aplicando RN03: fechas sin modificar");
+                    break;
+
+
+                case "05": // ROMSS: Movimientos operativo
+                    // RN07: ROMSS Movimientos - sumar 1 segundo a Fecha Final (igual que Python)
+                    consultaFin = consultaFin.Value.AddSeconds(1);
+                    _loggingService.WriteInfo($"ROMSS Movimientos - Aplicando RN07: {fechaFin} -> {FormatDateTime(consultaFin)} (+1 segundo)");
+                    break;
+
+                case "06": // BCN: Foto inventario operativo
+                    if (useInitialDate)
+                    {
+                        // RN01: Inventario Inicial - descontar 1 minuto a Fecha Desde
+                        consultaIni = consultaIni.Value.AddMinutes(-1);
+                        _loggingService.WriteInfo($"BCN Inventario Inicial - Aplicando RN01: {fechaIni} -> {FormatDateTime(consultaIni)}");
+                    }
+                    else
+                    {
+                        // RN02: Inventario Final - descontar 59 segundos a Fecha Final
+                        consultaFin = consultaFin.Value.AddSeconds(-59);
+                        _loggingService.WriteInfo($"BCN Inventario Final - Aplicando RN02: {fechaFin} -> {FormatDateTime(consultaFin)}");
+                    }
+                    break;
+
+                case "07": // ARES: Movimientos HPI
+                    // RN03: Movimientos - usar fechas tal como están
+                    _loggingService.WriteInfo($"ARES Movimientos - Aplicando RN03: fechas sin modificar");
+                    break;
+
+                default:
+                    _loggingService.WriteInfo($"Opción {option} - Sin reglas específicas, usando fechas tal como están");
+                    break;
+            }
+
+            return (consultaIni, consultaFin);
+        }
+
+        private async Task<QueryResult> IntegrarView(string option, string fechaIni, string fechaFin, bool useInitialDate = false, bool viewDataIntegrar = false)
         {
             try
             {
-                var (consultaIni, consultaFin) = NormalizeDateRange(fechaIni, fechaFin);
+                // Parse the already normalized dates - ensure they are in yyyy-MM-dd HH:mm:ss format
+                var consultaIni = DateTime.ParseExact(fechaIni, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                var consultaFin = DateTime.ParseExact(fechaFin, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                
+                _loggingService.WriteInfo($"IntegrarView called: option={option}, fechaIni={fechaIni}, fechaFin={fechaFin}, useInitialDate={useInitialDate}, viewDataIntegrar={viewDataIntegrar}");
+                _loggingService.WriteInfo($"IntegrarView - Fechas ya normalizadas: consultaIni={FormatDateTime(consultaIni)}, consultaFin={FormatDateTime(consultaFin)}");
+
 
                 // Validate that we have valid dates
-                if (!consultaIni.HasValue || !consultaFin.HasValue)
+                if (consultaIni == default(DateTime) || consultaFin == default(DateTime))
                 {
                     return new QueryResult
                     {
@@ -156,8 +354,19 @@ namespace NetBcnModule.Presentation.Controllers
                 // Handle inventory options (01, 04, 06)
                 if (option == "01" || option == "04" || option == "06")
                 {
-                    var inventoryDate = useInitialDate ? consultaIni.Value.AddMinutes(-1) : consultaFin.Value.AddSeconds(-59);
-                    _loggingService.WriteInfo($"BCN Inventory: using inventoryDate={inventoryDate} (useInitialDate={useInitialDate})");
+                    var inventoryDate = useInitialDate ? consultaIni : consultaFin;
+                    
+                    if (option == "04")
+                    {
+                        _loggingService.WriteInfo($"[ROMSS INVENTORY VIEW] User clicked 'Visualizar' for ROMSS Inventario Operativo");
+                        _loggingService.WriteInfo($"[ROMSS INVENTORY VIEW] Date range: {FormatDateTime(consultaIni)} to {FormatDateTime(consultaIni)}");
+                        _loggingService.WriteInfo($"[ROMSS INVENTORY VIEW] Using inventory date: {FormatDateTime(inventoryDate)} (useInitialDate={useInitialDate})");
+                    }
+                    else
+                    {
+                        _loggingService.WriteInfo($"BCN Inventory: using inventoryDate={inventoryDate} (useInitialDate={useInitialDate})");
+                    }
+                    
                     var dataResult = await _queriesService.GetBcnInventoryDetailAsync(inventoryDate, idCaso: 4);
                     var dtoList = dataResult.Select((model, index) => new BcnInventoryDetailDto
                     {
@@ -187,7 +396,7 @@ namespace NetBcnModule.Presentation.Controllers
                 {
                     string filtroMovimiento = option == "03" ? "=" : "<>";
                     string tpMovimiento = "LIMBAT";
-                    var dataResult = await _queriesService.GetBcnMovementViewAsync(consultaIni.Value, consultaFin.Value, idCaso: 4, filtroMovimiento, tpMovimiento);
+                    var dataResult = await _queriesService.GetBcnMovementViewAsync(consultaIni, consultaFin, idCaso: 4, filtroMovimiento, tpMovimiento);
                     var dtoList = dataResult.Select((model, index) => {
                         var fechaFinAux = model.dtMovimientoFin;
                         if (model.dtMovimientoIni.HasValue && model.dtMovimientoFin.HasValue && model.dtMovimientoIni.Value.Date == model.dtMovimientoFin.Value.Date && model.dtMovimientoFin.Value.TimeOfDay == TimeSpan.Zero)
@@ -200,8 +409,8 @@ namespace NetBcnModule.Presentation.Controllers
                             Item = index + 1,
                             Tag = model.nbMovimientoTag,
                             TipoMov = model.tpMovimientoCls,
-                            FechaInicio = model.dtMovimientoIni?.ToString("dd/MM/yyyy HH:mm"),
-                            FechaFin = fechaFinAux?.ToString("dd/MM/yyyy HH:mm"),
+                            FechaInicio = FormatDateTime(model.dtMovimientoIni),
+                            FechaFin = FormatDateTime(fechaFinAux),
                             RecOrigen = model.nmRecOrigen,
                             ProdOrigen = model.nmProdOrigen,
                             RecDestino = model.nmRecDestino,
@@ -225,7 +434,7 @@ namespace NetBcnModule.Presentation.Controllers
 
                     var result = ConvertToQueryResult(dtoList);
 
-                    if (option == "03")
+                    if (option == "03" || option == "02" )
                     {
                         result.Columns.Remove("Producto Destino");
                         foreach (var row in result.Data)
@@ -236,7 +445,7 @@ namespace NetBcnModule.Presentation.Controllers
                         var tipoMovIndex = result.Columns.IndexOf("Tipo Mov.");
                         if (tipoMovIndex != -1)
                         {
-                            result.Columns[tipoMovIndex] = "TipoFlujo";
+                            result.Columns[tipoMovIndex] = "Tipo Flujo";
                         }
                         foreach (var row in result.Data)
                         {
@@ -244,17 +453,50 @@ namespace NetBcnModule.Presentation.Controllers
                             {
                                 var value = row["Tipo Mov."];
                                 row.Remove("Tipo Mov.");
-                                row["TipoFlujo"] = value;
+                                row["Tipo Flujo"] = value;
                             }
                         }
                     }
 
                     return result;
                 }
+                // Handle HPI movements option (07)
+                else if (option == "07")
+                {
+                    var dataResult = await _queriesService.GetHpiMovementsAsync(consultaIni);
+                    var dtoList = dataResult.Select((model, index) => new BcnMovementDto
+                    {
+                        Item = index + 1,
+                        Tag = model.Tag,
+                        TipoMov = model.TpCategoria,
+                        FechaInicio = FormatDateTime(model.DtMovIni),
+                        FechaFin = FormatDateTime(model.DtMovFin),
+                        RecOrigen = model.IdRecOrigen,
+                        ProdOrigen = model.IdProdOrigen,
+                        RecDestino = model.IdRecDestino,
+                        ProdDestino = model.IdProdDestino,
+                        FuenteVolumen = model.VFuente,
+                        ReconciliadoVolumen = 0, // HPI no tiene reconciliado
+                        ConciliadoVolumen = 0,   // HPI no tiene conciliado
+                        UMVolumen = model.VUM ?? "",
+                        FuenteMasa = model.WFuente,
+                        ReconciliadoMasa = 0,   
+                        ConciliadoMasa = 0,   
+                        UMMasa = model.WUM ?? "",
+                        API = model.API.ToString() ?? "",
+                        IDMuestra = model.NbMuestra ?? "",
+                        NumPedido = model.NumPedido ?? "",
+                        PosPedido = model.PosPedido ?? "",
+                        UMPedido = model.UomPedido ?? "",
+                        Estado = "PROCESADO"
+                    }).ToList();
+
+                    return ConvertToQueryResult(dtoList);
+                }
                 // Handle balance option (08)
                 else if (option == "08")
                 {
-                    var dataResult = await _queriesService.GetBcnBalanceOperativoAsync(consultaIni.Value, consultaFin.Value, idCaso: 4);
+                    var dataResult = await _queriesService.GetBcnBalanceOperativoAsync(consultaIni, consultaFin, idCaso: 4);
                     var dtoList = dataResult.Select((model, index) => new BcnBalanceOperativoDto
                     {
                         Item = index + 1,
@@ -316,18 +558,44 @@ namespace NetBcnModule.Presentation.Controllers
         /// initial and final dates for their date filters.
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult> DynamicQuery(string option, string fechaIni, string fechaFin, string type = null, bool useInitialDate = false, bool viewDataIntegrar = false, CancellationToken cancellationToken = default)
+        public async Task<ActionResult> DynamicQuery(string option, string fechaIni, string fechaFin, string type = null, bool useInitialDate = false, CancellationToken cancellationToken = default, bool viewDataIntegrar = false)
         {
             try
             {
-                _loggingService.WriteInfo($"DynamicQuery called: option={option}, type={type}, fechaIni={fechaIni}, fechaFin={fechaFin}, useInitialDate={useInitialDate}");
+                _loggingService.WriteInfo($"DynamicQuery called: option={option}, type={type}, fechaIni={fechaIni}, fechaFin={fechaFin}, useInitialDate={useInitialDate}, viewDataIntegrar={viewDataIntegrar}");
                 QueryResult result;
 
                 // Check for cancellation
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Handle query operations (get data) - when no type is specified
-                var (consultaIni, consultaFin) = NormalizeDateRange(fechaIni, fechaFin);
+                DateTime? consultaIni, consultaFin;
+                
+                // Apply date normalization based on type and context
+                if (viewDataIntegrar && type == "integrar")
+                {
+                    // For integrar visualization, use specific rules that consider viewDataIntegrar
+                    (consultaIni, consultaFin) = NormalizeDateRangeForIntegrarOption(fechaIni, fechaFin, option, useInitialDate, viewDataIntegrar);
+                }
+                else if (type == "consolidar")
+                {
+                    // Use specific consolidar date rules that replicate Python behavior exactly
+                    (consultaIni, consultaFin) = NormalizeDateRangeForConsolidarOption(fechaIni, fechaFin, option, useInitialDate);
+                }
+                else if (type == "logistica" && (option == "03" || option == "04" || option == "05"))
+                {
+                    (consultaIni, consultaFin) = NormalizeDateRangeForOption(fechaIni, fechaFin, option, useInitialDate);
+                }
+                else if (type == "ares" && (option == "04" || option == "05" || option == "06" || option == "07"))
+                {
+                    // Python: opciones 04 y 05 usan fechaIni, opciones 06 y 07 usan fechaFin
+                    (consultaIni, consultaFin) = NormalizeDateRangeForOption(fechaIni, fechaFin, option, useInitialDate);
+                }
+                else
+                {
+                    // Default normalization for other cases
+                    (consultaIni, consultaFin) = NormalizeDateRangeForOption(fechaIni, fechaFin, option, useInitialDate);
+                }
 
                 // Validate dates
                 if (consultaFin != null && consultaIni != null)
@@ -340,7 +608,10 @@ namespace NetBcnModule.Presentation.Controllers
 
                 if (viewDataIntegrar && type == "integrar")
                 {
-                    result = await IntegrarView(option, fechaIni, fechaFin, useInitialDate);
+                    // Use the already normalized dates from above - ensure they are in standard format
+                    var fechaIniFormatted = consultaIni?.ToString("yyyy-MM-dd HH:mm:ss") ?? DateTime.Today.ToString("yyyy-MM-dd HH:mm:ss");
+                    var fechaFinFormatted = consultaFin?.ToString("yyyy-MM-dd HH:mm:ss") ?? DateTime.Today.ToString("yyyy-MM-dd HH:mm:ss");
+                    result = await IntegrarView(option, fechaIniFormatted, fechaFinFormatted, useInitialDate, viewDataIntegrar);
                 }
                 else
                 {
@@ -443,15 +714,15 @@ namespace NetBcnModule.Presentation.Controllers
         /// </summary>
         [HttpPost]
         [Route("consolidate")]
-        public async Task<ActionResult> ConsolidateData(string option, string fechaIni, string fechaFin, string userAudit = "AdminBCN")
+        public async Task<ActionResult> ConsolidateData(string option, string fechaIni, string fechaFin, string userAudit = "AdminBCN", bool useInitialDate = false)
         {
             try
             {
-                _loggingService.WriteInfo($"ConsolidateData called: option={option}, fechaIni={fechaIni}, fechaFin={fechaFin}, userAudit={userAudit}");
+                _loggingService.WriteInfo($"ConsolidateData called: option={option}, fechaIni={fechaIni}, fechaFin={fechaFin}, userAudit={userAudit}, useInitialDate={useInitialDate}");
 
-                // Parse dates
-                var (consultaIni, consultaFin) = NormalizeDateRange(fechaIni, fechaFin);
-
+                // Parse dates using specific consolidar rules - ensure they are in standard format
+                var (consultaIni, consultaFin) = NormalizeDateRangeForConsolidarOption(fechaIni, fechaFin, option, useInitialDate);
+                _loggingService.WriteInfo($"Consulta ini: {FormatDateTime(consultaIni)}, consulta fin: {FormatDateTime(consultaFin)}");
                 // Validate dates
                 if (consultaFin != null && consultaIni != null)
                 {
@@ -472,7 +743,7 @@ namespace NetBcnModule.Presentation.Controllers
                 var dateFrom = consultaIni ?? DateTime.Today;
                 var dateTo = consultaFin ?? DateTime.Today;
 
-                _loggingService.WriteInfo($"Starting consolidation process: option={option}, dateFrom={dateFrom}, dateTo={dateTo}");
+                _loggingService.WriteInfo($"Starting consolidation process: option={option}, dateFrom={FormatDateTime(dateFrom)}, dateTo={FormatDateTime(dateTo)}");
 
                 // Process consolidation using DataProcessingService (replicates Python InfConsolidado logic)
                 var consolidationResult = await _dataProcessingService.ProcessConsolidatedInfoAsync(
@@ -840,9 +1111,69 @@ namespace NetBcnModule.Presentation.Controllers
         }
 
         /// <summary>
+        /// Format decimal values to always show 3 decimal places (.000 if no decimals)
+        /// </summary>
+        private string FormatDecimalWith3Places(object value)
+        {
+            if (value == null)
+                return "0.000";
+
+            if (value is decimal decimalValue)
+            {
+                return decimalValue.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+            
+            if (value is double doubleValue)
+            {
+                return doubleValue.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+            
+            if (value is float floatValue)
+            {
+                return floatValue.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+            
+            if (value is int intValue)
+            {
+                return intValue.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+            
+            if (value is long longValue)
+            {
+                return longValue.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+
+            // Try to parse as decimal
+            if (decimal.TryParse(value.ToString(), out decimal parsedDecimal))
+            {
+                return parsedDecimal.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+
+            return value.ToString();
+        }
+
+        /// <summary>
+        /// Format DateTime to standard format yyyy-MM-dd HH:mm:ss
+        /// </summary>
+        private string FormatDateTime(DateTime? dateTime)
+        {
+            if (dateTime == null)
+                return "";
+            return dateTime.Value.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+
+        /// <summary>
+        /// Format DateTime to standard format yyyy-MM-dd HH:mm:ss
+        /// </summary>
+        private string FormatDateTime(DateTime dateTime)
+        {
+            return dateTime.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+
+        /// <summary>
         /// Get a safe cell value for Excel export, handling nulls and special characters
         /// </summary>
-        private string GetSafeCellValue(Dictionary<string, object> rowData, string columnName)
+        private object GetSafeCellValue(Dictionary<string, object> rowData, string columnName)
         {
             if (rowData == null || !rowData.ContainsKey(columnName))
             {
@@ -857,6 +1188,47 @@ namespace NetBcnModule.Presentation.Controllers
 
             try
             {
+                // Check if this is a numeric column that should be formatted with 3 decimal places
+                var numericColumns = new HashSet<string> 
+                { 
+                    "API", "Volumen Total", "Volumen Bombeable", "Volumen Remanente", "Masa Total", "Masa Bombeable", "Masa Remanente",
+                    "Fuente Volumen", "Reconciliado Volumen", "Conciliado Volumen", "Fuente Masa", "Reconciliado Masa", "Conciliado Masa",
+                    "Inv. Inicial Volumen", "Entradas Volumen", "Salidas Volumen", "Inv. Final Volumen", "Desbalance Volumen",
+                    "Inv. Inicial Masa", "Entradas Masa", "Salidas Masa", "Inv. Final Masa", "Desbalance Masa",
+                    "SG Inv. Final", "FC", "Valor Contable", "Valor Contabilizado", "Cantidad Total", "Cantidad Bombeable LU",
+                    "Cantidad Bombeable CC", "Cantidad Bloqueada", "Inv. Inicial", "Entradas", "Salidas", "Inv. Final", "Desbalance"
+                };
+
+                if (numericColumns.Contains(columnName))
+                {
+                    // For numeric columns, return the actual numeric value, not a formatted string
+                    if (value is decimal decimalValue)
+                    {
+                        return Math.Round(decimalValue, 3);
+                    }
+                    if (value is double doubleValue)
+                    {
+                        return Math.Round(doubleValue, 3);
+                    }
+                    if (value is float floatValue)
+                    {
+                        return Math.Round(floatValue, 3);
+                    }
+                    if (value is int intValue)
+                    {
+                        return intValue;
+                    }
+                    if (value is long longValue)
+                    {
+                        return longValue;
+                    }
+                    // Try to parse as decimal
+                    if (decimal.TryParse(value.ToString(), out decimal parsedDecimal))
+                    {
+                        return Math.Round(parsedDecimal, 3);
+                    }
+                }
+
                 var stringValue = value.ToString();
                 
                 // Handle special cases
@@ -933,23 +1305,22 @@ namespace NetBcnModule.Presentation.Controllers
                     // Actual data model properties from Queries.cs: NbRN, DtInventario, IdRecOrigen, NmRecOrigen, IdProdOrigen, NmProdOrigen, VFuente, VUM, WFuente, WUM
                     mapping = new Dictionary<string, string>
                     {
-                        { "NbRN", "Item" },
-                        { "NmProdOrigen", "Producto" },
-                        { "NmRecOrigen", "Almacén" },
-                        { "BoFotoInventario", "Foto Inv." },
-                        { "BoVoBoAlmacen", "VoBo" },
-                        { "NbAPI60", "API" },
-                        { "VFuente", "Volumen Total" },
-                        { "CantVolBombeable", "Volumen Bombeable" },
-                        { "CantVolRemanente", "Volumen Remanente" },
-                        { "VUM", "UM Volumen" },
-                        { "WFuente", "Masa Total" },
-                        { "CantMasBombeable", "Masa Bombeable" },
-                        { "CantMasRemanente", "Masa Remanente" },
-                        { "WUM", "UM Masa" },
-                        { "IdRecOrigen", "ID Muestra" },
-                        { "IdProdOrigen", "ID Muestra Origen" },
-                        { "NmEstado", "Estado" }
+                        { "Item", "Item" },
+                        { "Producto", "Producto" },
+                        { "Almacen", "Almacén" },
+                        { "Foto Inv.", "Foto Inv." },
+                        { "VoBo", "VoBo" },
+                        { "API", "API" },
+                        { "Volumen Total", "Volumen Total" },
+                        { "Volumen Bombeable", "Volumen Bombeable" },
+                        { "Volumen Remanente", "Volumen Remanente" },
+                        { "UM Volumen", "UM Volumen" },
+                        { "Masa Total", "Masa Total" },
+                        { "Masa Bombeable", "Masa Bombeable" },
+                        { "Masa Remanente", "Masa Remanente" },
+                        { "UM Masa", "UM Masa" },
+                        { "ID Muestra", "ID Muestra" },
+                        { "Estado", "Estado" }
                     };
                     break;
                 
@@ -957,28 +1328,27 @@ namespace NetBcnModule.Presentation.Controllers
                     // Original mapping plus new fields for completeness
                     mapping = new Dictionary<string, string>
                     {
-                        { "NbRN", "Item" },
+                        { "Item", "Item" },
                         { "Tag", "Tag" },
-                        { "DtMovIni", "Fecha Inicio" },
-                        { "DtMovFin", "Fecha Fin" },
-                        { "NmRecOrigen", "Recurso Origen" },
-                        { "NmProdOrigen", "Producto Origen" },
-                        { "NmRecDestino", "Recurso Destino" },
-                        { "NmProdDestino", "Producto Destino" },
-                        { "VFuente", "Volumen Fuente" },
-                        { "VReconciliado", "Volumen Reconciliado" },
-                        { "VConciliado", "Volumen Conciliado" },
-                        { "VUM", "UM Volumen" },
-                        { "WFuente", "Masa Fuente" },
-                        { "WReconciliado", "Masa Reconciliado" },
-                        { "WConciliado", "Masa Conciliado" },
-                        { "WUM", "UM Masa" },
-                        { "NbAPI60", "API" },
-                        { "nbMuestra", "ID Muestra" },
-                        { "NumPedido", "Número Pedido" },
-                        { "PosPedido", "Posición Pedido" },
-                        { "IdUMPedido", "UM Pedido" },
-                        { "NmEstado", "Estado" }
+                        { "Fecha Inicio", "Fecha Inicio" },
+                        { "Fecha Fin", "Fecha Fin" },
+                        { "Recurso Origen", "Recurso Origen" },
+                        { "Producto Origen", "Producto Origen" },
+                        { "Recurso Destino", "Recurso Destino" },
+                        { "Fuente Volumen", "Volumen Fuente" },
+                        { "Reconciliado Volumen", "Volumen Reconciliado" },
+                        { "Conciliado Volumen", "Volumen Conciliado" },
+                        { "UM Volumen", "UM Volumen" },
+                        { "Fuente Masa", "Masa Fuente" },
+                        { "Reconciliado Masa", "Masa Reconciliado" },
+                        { "Conciliado Masa", "Masa Conciliado" },
+                        { "UM Masa", "UM Masa" },
+                        { "API", "API" },
+                        { "ID Muestra", "ID Muestra" },
+                        { "Num. Pedido", "Número Pedido" },
+                        { "Pos. Pedido", "Posición Pedido" },
+                        { "UM Pedido", "UM Pedido" },
+                        { "Estado", "Estado" }
                     };
                     break;
                 
@@ -986,28 +1356,27 @@ namespace NetBcnModule.Presentation.Controllers
                     // Original mapping plus new fields for completeness
                     mapping = new Dictionary<string, string>
                     {
-                        { "NbRN", "Item" },
+                        { "Item", "Item" },
                         { "Tag", "Tag" },
-                        { "DtFlujo", "Fecha Flujo" },
-                        { "DtMovFin", "Fecha Fin" },
-                        { "NmRecOrigen", "Recurso Origen" },
-                        { "NmProdOrigen", "Producto Origen" },
-                        { "NmRecDestino", "Recurso Destino" },
-                        { "NmProdDestino", "Producto Destino" },
-                        { "VFuente", "Volumen Fuente" },
-                        { "VReconciliado", "Volumen Reconciliado" },
-                        { "VConciliado", "Volumen Conciliado" },
-                        { "VUM", "UM Volumen" },
-                        { "WFuente", "Masa Fuente" },
-                        { "WReconciliado", "Masa Reconciliado" },
-                        { "WConciliado", "Masa Conciliado" },
-                        { "WUM", "UM Masa" },
-                        { "NbAPI60", "API" },
-                        { "nbMuestra", "ID Muestra" },
-                        { "NumPedido", "Número Pedido" },
-                        { "PosPedido", "Posición Pedido" },
-                        { "IdUMPedido", "UM Pedido" },
-                        { "NmEstado", "Estado" }
+                        { "Fecha Inicio", "Fecha Inicio" },
+                        { "Fecha Fin", "Fecha Fin" },
+                        { "Recurso Origen", "Recurso Origen" },
+                        { "Producto Origen", "Producto Origen" },
+                        { "Recurso Destino", "Recurso Destino" },
+                        { "Fuente Volumen", "Volumen Fuente" },
+                        { "Reconciliado Volumen", "Volumen Reconciliado" },
+                        { "Conciliado Volumen", "Volumen Conciliado" },
+                        { "UM Volumen", "UM Volumen" },
+                        { "Fuente Masa", "Masa Fuente" },
+                        { "Reconciliado Masa", "Masa Reconciliado" },
+                        { "Conciliado Masa", "Masa Conciliado" },
+                        { "UM Masa", "UM Masa" },
+                        { "API", "API" },
+                        { "ID Muestra", "ID Muestra" },
+                        { "Num. Pedido", "Número Pedido" },
+                        { "Pos. Pedido", "Posición Pedido" },
+                        { "UM Pedido", "UM Pedido" },
+                        { "Estado", "Estado" }
                     };
                     break;
                 
@@ -1015,22 +1384,22 @@ namespace NetBcnModule.Presentation.Controllers
                     // Original mapping plus new fields for completeness
                     mapping = new Dictionary<string, string>
                     {
-                        { "NbRN", "Item" },
-                        { "NbProducto", "Producto" },
-                        { "NbAlmacen", "Almacén" },
-                        { "BoInvFoto", "Foto Inv." },
-                        { "BoVoBo", "VoBo" },
-                        { "NbAPI60", "API" },
-                        { "TotalNSV", "Volumen Total" },
-                        { "BombeableNSV", "Volumen Bombeable" },
-                        { "RemanenteNSV", "Volumen Remanente" },
-                        { "VUM", "UM Volumen" },
-                        { "TotalNSW", "Masa Total" },
-                        { "PumpableNSW", "Masa Bombeable" },
-                        { "RemanenteNSW", "Masa Remanente" },
-                        { "WUM", "UM Masa" },
-                        { "nbMuestra", "ID Muestra" },
-                        { "NmEstado", "Estado" }
+                        { "Item", "Item" },
+                        { "Producto", "Producto" },
+                        { "Almacen", "Almacén" },
+                        { "Foto Inv.", "Foto Inv." },
+                        { "VoBo", "VoBo" },
+                        { "API", "API" },
+                        { "Volumen Total", "Volumen Total" },
+                        { "Volumen Bombeable", "Volumen Bombeable" },
+                        { "Volumen Remanente", "Volumen Remanente" },
+                        { "UM Volumen", "UM Volumen" },
+                        { "Masa Total", "Masa Total" },
+                        { "Masa Bombeable", "Masa Bombeable" },
+                        { "Masa Remanente", "Masa Remanente" },
+                        { "UM Masa", "UM Masa" },
+                        { "ID Muestra", "ID Muestra" },
+                        { "Estado", "Estado" }
                     };
                     break;
                 
@@ -1038,29 +1407,29 @@ namespace NetBcnModule.Presentation.Controllers
                     // Same structure as AORA movements
                     mapping = new Dictionary<string, string>
                     {
-                        { "NbRN", "Item" },
+                        { "Item", "Item" },
                         { "Tag", "Tag" },
-                        { "TpCategoria", "Tipo Mov." },
-                        { "DtMovIni", "Fecha Inicio" },
-                        { "DtMovFin", "Fecha Fin" },
-                        { "IdRecOrigen", "Recurso Origen" },
-                        { "TpRecOrigen", "Producto Origen" },
-                        { "IdProdOrigen", "Recurso Destino" },
-                        { "IdRecDestino", "Producto Destino" },
-                        { "TpRecDestino", "Volumen Fuente" },
-                        { "VlCantVolReconciliado", "Volumen Reconciliado" },
-                        { "VlCantVolConciliado", "Volumen Conciliado" },
-                        { "VUM", "UM Volumen" },
-                        { "WFuente", "Masa Fuente" },
-                        { "VlCantMasReconciliado", "Masa Reconciliado" },
-                        { "VlCantMasConciliado", "Masa Conciliado" },
-                        { "WUM", "UM Masa" },
+                        { "Tipo Mov.", "Tipo Mov." },
+                        { "Fecha Inicio", "Fecha Inicio" },
+                        { "Fecha Fin", "Fecha Fin" },
+                        { "Recurso Origen", "Recurso Origen" },
+                        { "Producto Origen", "Producto Origen" },
+                        { "Recurso Destino", "Recurso Destino" },
+                        { "Producto Destino", "Producto Destino" },
+                        { "Fuente Volumen", "Volumen Fuente" },
+                        { "Reconciliado Volumen", "Volumen Reconciliado" },
+                        { "Conciliado Volumen", "Volumen Conciliado" },
+                        { "UM Volumen", "UM Volumen" },
+                        { "Fuente Masa", "Masa Fuente" },
+                        { "Reconciliado Masa", "Masa Reconciliado" },
+                        { "Conciliado Masa", "Masa Conciliado" },
+                        { "UM Masa", "UM Masa" },
                         { "API", "API" },
-                        { "nbMuestra", "ID Muestra" },
-                        { "NumPedido", "Número Pedido" },
-                        { "PosPedido", "Posición Pedido" },
-                        { "UomPedido", "UM Pedido" },
-                        { "NmEstado", "Estado" }
+                        { "ID Muestra", "ID Muestra" },
+                        { "Num. Pedido", "Número Pedido" },
+                        { "Pos. Pedido", "Posición Pedido" },
+                        { "UM Pedido", "UM Pedido" },
+                        { "Estado", "Estado" }
                     };
                     break;
                 
@@ -1068,54 +1437,52 @@ namespace NetBcnModule.Presentation.Controllers
                     // Same structure as other inventories
                     mapping = new Dictionary<string, string>
                     {
-                        { "NbRN", "Item" },
-                        { "NmRecProducto", "Producto" },
-                        { "NmRecAlmacen", "Almacén" },
-                        { "IdUMFotoInventario", "Foto Inv." },
-                        { "BoVoBoAlmacen", "VoBo" },
-                        { "NbAPI60", "API" },
-                        { "CantVolTotal", "Volumen Total" },
-                        { "CantVolBombeable", "Volumen Bombeable" },
-                        { "CantVolRemanente", "Volumen Remanente" },
-                        { "IdUMVolumen", "UM Volumen" },
-                        { "CantMasTotal", "Masa Total" },
-                        { "CantBombeableCC", "Masa Bombeable" },
-                        { "CantBloqueada", "Masa Remanente" },
-                        { "IdUMMasa", "UM Masa" },
-                        { "nbMuestra", "ID Muestra" },
-                        { "NmEstado", "Estado" }
+                        { "Item", "Item" },
+                        { "Producto", "Producto" },
+                        { "Almacen", "Almacén" },
+                        { "Foto Inv.", "Foto Inv." },
+                        { "VoBo", "VoBo" },
+                        { "API", "API" },
+                        { "Volumen Total", "Volumen Total" },
+                        { "Volumen Bombeable", "Volumen Bombeable" },
+                        { "Volumen Remanente", "Volumen Remanente" },
+                        { "UM Volumen", "UM Volumen" },
+                        { "Masa Total", "Masa Total" },
+                        { "Masa Bombeable", "Masa Bombeable" },
+                        { "Masa Remanente", "Masa Remanente" },
+                        { "UM Masa", "UM Masa" },
+                        { "ID Muestra", "ID Muestra" },
+                        { "Estado", "Estado" }
                     };
                     break;
                 
-                case "07": // BCN: Movimientos
-                    // Same structure as other movements
+                case "07": // ARES: Movimientos HPI
+                    // HPI structure (similar to movements but simpler)
                     mapping = new Dictionary<string, string>
                     {
-                        { "NbRN", "Item" },
-                        { "NbMovimientoTag", "Tag" },
-                        { "TpMovimientoCls", "Tipo Mov." },
-                        { "DtMovimientoIni", "Fecha Inicio" },
-                        { "DtMovimientoFin", "Fecha Fin" },
-                        { "nmRecOrigen", "Recurso Origen" },
-                        { "nbProdOrigen", "ID Producto Origen" },
-                        { "nmProdOrigen", "Producto Origen" },
-                        { "nmRecDestino", "Recurso Destino" },
-                        { "NbProdDestino", "ID Producto Destino" },
-                        { "nmProdDestino", "Producto Destino" },
-                        { "VlCantVolFuente", "Volumen Fuente" },
-                        { "VlCantVolReconciliado", "Volumen Reconciliado" },
-                        { "VlCantVolConciliado", "Volumen Conciliado" },
-                        { "IdUMCantVol", "UM Volumen" },
-                        { "VlCantMasFuente", "Masa Fuente" },
-                        { "VlCantMasReconciliado", "Masa Reconciliado" },
-                        { "VlCantMasConciliado", "Masa Conciliado" },
-                        { "IdUMCantMas", "UM Masa" },
-                        { "NbAPI60", "API" },
-                        { "nbMuestra", "ID Muestra" },
-                        { "NumPedido", "Número Pedido" },
-                        { "PosPedido", "Posición Pedido" },
-                        { "IdUMPedido", "UM Pedido" },
-                        { "NmEstado", "Estado" }
+                        { "Item", "Item" },
+                        { "Tag", "Tag" },
+                        { "Tipo Mov.", "Tipo Mov." },
+                        { "Fecha Inicio", "Fecha Inicio" },
+                        { "Fecha Fin", "Fecha Fin" },
+                        { "Recurso Origen", "Recurso Origen" },
+                        { "Producto Origen", "Producto Origen" },
+                        { "Recurso Destino", "Recurso Destino" },
+                        { "Producto Destino", "Producto Destino" },
+                        { "Fuente Volumen", "Volumen Fuente" },
+                        { "Reconciliado Volumen", "Volumen Reconciliado" },
+                        { "Conciliado Volumen", "Volumen Conciliado" },
+                        { "UM Volumen", "UM Volumen" },
+                        { "Fuente Masa", "Masa Fuente" },
+                        { "Reconciliado Masa", "Masa Reconciliado" },
+                        { "Conciliado Masa", "Masa Conciliado" },
+                        { "UM Masa", "UM Masa" },
+                        { "API", "API" },
+                        { "ID Muestra", "ID Muestra" },
+                        { "Num. Pedido", "Número Pedido" },
+                        { "Pos. Pedido", "Posición Pedido" },
+                        { "UM Pedido", "UM Pedido" },
+                        { "Estado", "Estado" }
                     };
                     break;
                 
@@ -1123,29 +1490,29 @@ namespace NetBcnModule.Presentation.Controllers
                     // Same structure as other movements
                     mapping = new Dictionary<string, string>
                     {
-                        { "NbRN", "Item" },
+                        { "Item", "Item" },
                         { "Tag", "Tag" },
-                        { "TpCategoria", "Tipo Mov." },
-                        { "DtMovIni", "Fecha Inicio" },
-                        { "DtMovFin", "Fecha Fin" },
-                        { "TpRecOrigen", "Recurso Origen" },
-                        { "IdProdOrigen", "Producto Origen" },
-                        { "TpRecDestino", "Recurso Destino" },
-                        { "IdProdDestino", "Producto Destino" },
-                        { "VFuente", "Volumen Fuente" },
-                        { "VlCantVolReconciliado", "Volumen Reconciliado" },
-                        { "VlCantVolConciliado", "Volumen Conciliado" },
-                        { "VUM", "UM Volumen" },
-                        { "WFuente", "Masa Fuente" },
-                        { "VlCantMasReconciliado", "Masa Reconciliado" },
-                        { "VlCantMasConciliado", "Masa Conciliado" },
-                        { "WUM", "UM Masa" },
+                        { "Tipo Mov.", "Tipo Mov." },
+                        { "Fecha Inicio", "Fecha Inicio" },
+                        { "Fecha Fin", "Fecha Fin" },
+                        { "Recurso Origen", "Recurso Origen" },
+                        { "Producto Origen", "Producto Origen" },
+                        { "Recurso Destino", "Recurso Destino" },
+                        { "Producto Destino", "Producto Destino" },
+                        { "Fuente Volumen", "Volumen Fuente" },
+                        { "Reconciliado Volumen", "Volumen Reconciliado" },
+                        { "Conciliado Volumen", "Volumen Conciliado" },
+                        { "UM Volumen", "UM Volumen" },
+                        { "Fuente Masa", "Masa Fuente" },
+                        { "Reconciliado Masa", "Masa Reconciliado" },
+                        { "Conciliado Masa", "Masa Conciliado" },
+                        { "UM Masa", "UM Masa" },
                         { "API", "API" },
-                        { "nbMuestra", "ID Muestra" },
-                        { "NumPedido", "Número Pedido" },
-                        { "PosPedido", "Posición Pedido" },
-                        { "UomPedido", "UM Pedido" },
-                        { "NmEstado", "Estado" }
+                        { "ID Muestra", "ID Muestra" },
+                        { "Num. Pedido", "Número Pedido" },
+                        { "Pos. Pedido", "Posición Pedido" },
+                        { "UM Pedido", "UM Pedido" },
+                        { "Estado", "Estado" }
                     };
                     break;
                 
@@ -1153,27 +1520,25 @@ namespace NetBcnModule.Presentation.Controllers
                     // Python HTML columns: Item, ID, Codigo, Recurso, UM, Producto (Inicial/Final), Volumen (Inv. Inicial, Entradas, Salidas, Inv. Final, Desbalance, UM), Masa (similar estructura), SG Inv. Final, FC
                     mapping = new Dictionary<string, string>
                     {
-                        { "NbRN", "Item" },
-                        { "IdRecurso", "ID" },
-                        { "NbRecurso", "Código" },
-                        { "NmRecurso", "Recurso" },
-                        { "UMBalance", "UM" },
-                        // { "NmProductoIni", "Producto Inicial" },
-                        // { "NmProductoFin", "Producto Final" },
-                        { "InvIniVol", "Inv. Inicial Volumen" },
-                        { "VlEntVol", "Entradas Volumen" },
-                        { "VlSalVol", "Salidas Volumen" },
-                        { "InvFinVol", "Inv. Final Volumen" },
-                        { "VlDesbalanceVol", "Desbalance Volumen" },
-                        { "UMVol", "UM Volumen" },
-                        { "InvIniMas", "Inv. Inicial Masa" },
-                        { "VlEntMas", "Entradas Masa" },
-                        { "VlSalMas", "Salidas Masa" },
-                        { "InvFinMas", "Inv. Final Masa" },
-                        { "VlDesbalanceMas", "Desbalance Masa" },
-                        { "UMMas", "UM Masa" },
-                        // { "SGInvFin", "SG Inv. Final" },
-                        // { "FC", "FC" }
+                        { "Item", "Item" },
+                        { "ID", "ID" },
+                        { "Código", "Código" },
+                        { "Recurso", "Recurso" },
+                        { "UM", "UM" },
+                        { "Producto Inicial", "Producto Inicial" },
+                        { "Producto Final", "Producto Final" },
+                        { "Inv. Inicial Volumen", "Inv. Inicial Volumen" },
+                        { "Entradas Volumen", "Entradas Volumen" },
+                        { "Salidas Volumen", "Salidas Volumen" },
+                        { "Inv. Final Volumen", "Inv. Final Volumen" },
+                        { "Desbalance Volumen", "Desbalance Volumen" },
+                        { "UM Volumen", "UM Volumen" },
+                        { "Inv. Inicial Masa", "Inv. Inicial Masa" },
+                        { "Entradas Masa", "Entradas Masa" },
+                        { "Salidas Masa", "Salidas Masa" },
+                        { "Inv. Final Masa", "Inv. Final Masa" },
+                        { "Desbalance Masa", "Desbalance Masa" },
+                        { "UM Masa", "UM Masa" }
                     };
                     break;
             }
@@ -1207,7 +1572,7 @@ namespace NetBcnModule.Presentation.Controllers
                         { "CantMasBombeable", "Masa Bombeable" },
                         { "CantMasRemanente", "Masa Remanente" },
                         { "IdUMMasa", "UM Masa" },
-                        { "nbMuestra", "ID Muestra" },
+                        // { "nbMuestra", "ID Muestra" },
                         { "NmEstado", "Estado" }
                     };
                     break;
@@ -1305,63 +1670,19 @@ namespace NetBcnModule.Presentation.Controllers
                     };
                     break;
                 
-                case "07": // BCN: Aplicar Regla de Balance
-                    // Python HTML columns: Item, Producto, Almacen, Foto Inv., VoBo, API, Volumen (Total, Bombeable, Remanente, UM), Masa (Total, Bombeable, Remanente, UM), Muestra (ID, Fecha), Estado, Tipo Regla, Factor Balance, UM Balance
-                    mapping = new Dictionary<string, string>
-                    {
-                        { "NbRN", "Item" },
-                        { "NmRecProducto", "Producto" },
-                        { "NmRecAlmacen", "Almacén" },
-                        { "BoFotoInventario", "Foto Inv." },
-                        { "BoVoBoAlmacen", "VoBo" },
-                        { "NbAPI60", "API" },
-                        { "CantVolTotal", "Volumen Total" },
-                        { "CantVolBombeable", "Volumen Bombeable" },
-                        { "CantVolRemanente", "Volumen Remanente" },
-                        { "IdUMVolumen", "UM Volumen" },
-                        { "CantMasTotal", "Masa Total" },
-                        { "CantMasBombeable", "Masa Bombeable" },
-                        { "CantMasRemanente", "Masa Remanente" },
-                        { "IdUMMasa", "UM Masa" },
-                        { "nbMuestra", "ID Muestra" },
-                        { "NmEstado", "Estado" },
-                        { "TpReglaBalance", "Tipo Regla" },
-                        { "VlFactorBalance", "Factor Balance" },
-                        { "IdUMBalance", "UM Balance" }
-                    };
+                case "07": // BCN: Corregir Bal. Sig. Contrario
+                    // Esta opción ejecuta el proceso de corrección de balance signo contrario
+                    // Python ejecuta RNSIGCONTRARIO y no retorna datos para mostrar
                     break;
                 
-                case "08": // BCN: Diferencia Balance
-                    // Python HTML columns: Item, Tag, Tipo Mov., Fecha (Inicio, Fin), Origen (Recurso, Producto), Destino (Recurso, Producto), Volumen (Fuente, Reconciliado, Conciliado, UM), Masa (Fuente, Reconciliado, Conciliado, UM), API, ID Muestra, Pedido (Numero, Posicion, UM), Estado, Diferencia Vol, Diferencia Mas, Tipo Diferencia
-                    mapping = new Dictionary<string, string>
-                    {
-                        { "NbRN", "Item" },
-                        { "NbMovimientoTag", "Tag" },
-                        { "TpMovimientoCls", "Tipo Mov." },
-                        { "DtMovimientoIni", "Fecha Inicio" },
-                        { "DtMovimientoFin", "Fecha Fin" },
-                        { "NmRecOrigen", "Recurso Origen" },
-                        { "NmProdOrigen", "Producto Origen" },
-                        { "NmRecDestino", "Recurso Destino" },
-                        { "NmProdDestino", "Producto Destino" },
-                        { "VlCantVolFuente", "Volumen Fuente" },
-                        { "VlCantVolReconciliado", "Volumen Reconciliado" },
-                        { "VlCantVolConciliado", "Volumen Conciliado" },
-                        { "IdUMCantVol", "UM Volumen" },
-                        { "VlCantMasFuente", "Masa Fuente" },
-                        { "VlCantMasReconciliado", "Masa Reconciliado" },
-                        { "VlCantMasConciliado", "Masa Conciliado" },
-                        { "IdUMCantMas", "UM Masa" },
-                        { "NbAPI60", "API" },
-                        { "nbMuestra", "ID Muestra" },
-                        { "NumPedido", "Número Pedido" },
-                        { "PosPedido", "Posición Pedido" },
-                        { "IdUMPedido", "UM Pedido" },
-                        { "NmEstado", "Estado" },
-                        { "VlDiferenciaVol", "Diferencia Volumen" },
-                        { "VlDiferenciaMas", "Diferencia Masa" },
-                        { "TpDiferencia", "Tipo Diferencia" }
-                    };
+                case "08": // BCN: Aplicar Regla de Balance
+                    // Esta opción solo ejecuta el proceso, no consulta datos para mostrar
+                    // Python solo ejecuta REGBALANCE y no retorna datos
+                    break;
+                
+                case "09": // BCN: Diferencia Balance
+                    // Esta opción solo ejecuta el proceso, no consulta datos para mostrar
+                    // Python solo ejecuta DIFBALANCE y no retorna datos
                     break;
             }
             
@@ -1397,7 +1718,7 @@ namespace NetBcnModule.Presentation.Controllers
                         { "NumPedido", "Número Pedido" },
                         { "PosPedido", "Posición Pedido" },
                         { "IdUMPedido", "UM Pedido" },
-                        { "idCentroCosto", "CeCo" },
+                        { "nbCentroCosto", "CeCo" },
                         { "nmEstado", "Estado" }
                     };
                     break;
@@ -1494,7 +1815,7 @@ namespace NetBcnModule.Presentation.Controllers
                         { "idDSTMaterial", "Material Destino" },
                         { "vlContable", "Valor Contable" },
                         { "idUMContable", "UM Contable" },
-                        { "idCentroCosto", "CeCo" },
+                        { "nbCentroCosto", "CeCo" },
                         { "txEstadoEnvio", "Estado de Envío" },
                         { "vlAtrCalidad", "Valor Atributo Calidad" },
                         { "idUMAtrCalidad", "UM Atributo Calidad" },
@@ -1530,38 +1851,47 @@ namespace NetBcnModule.Presentation.Controllers
                     break;
 
                 case "04": // ARES: Rev. Procesamiento Logistico
-                    return new Dictionary<string, string>
-                    {
-                        { "InventarioBCN", "Inventario BCN" },
-                        { "InventarioECC", "Inventario ECC" },
-                        { "InventarioS4H", "Inventario S4H" }
-                    };
-
-                case "05": // ARES: Rev. Procesamiento Costo
+                    // Python: vTagQuery = "MOVLOGISTICOOK" - consulta movimientos logísticos procesados
                     return new Dictionary<string, string>
                     {
                         { "Item", "Item" },
-                        { "ID Registro Costo", "ID Registro Costo" },
+                        { "ID Movimiento", "ID Movimiento" },
                         { "Fecha Contabilización", "Fecha Contabilización" },
-                        { "Texto Movimiento", "Texto Movimiento" },
+                        { "Texto Procesamiento", "Texto Procesamiento" }
+                    };
+
+                case "05": // ARES: Rev. Procesamiento Costo
+                    // Python: vTagQuery = "MOVCOSTOOK" - consulta movimientos de costos procesados
+                    return new Dictionary<string, string>
+                    {
+                        { "Item", "Item" },
                         { "Tipo Objeto Costo", "Tipo Objeto Costo" },
                         { "ID Objeto Costo", "ID Objeto Costo" },
                         { "ID Valor Estadístico", "ID Valor Estadístico" },
-                        { "Nombre Producto", "Nombre Producto" },
-                        { "UM", "UM" },
-                        { "Valor Contabilizado", "Valor Contabilizado" },
-                        { "JSON Movimiento", "JSON Movimiento" }
+                        { "Fecha Contabilización", "Fecha Contabilización" },
+                        { "Texto Procesamiento", "Texto Procesamiento" },
+                        { "Fecha Envío", "Fecha Envío" }
                     };
 
                 case "06": // ARES: Rev. Comparativo Inventario
+                    // Python: vTagQuery = "INVENTARIOSAPECC" - consulta comparativo de inventarios
                     return new Dictionary<string, string>
                     {
-                        { "InventarioBCN", "Inventario BCN" },
-                        { "InventarioECC", "Inventario ECC" },
-                        { "InventarioS4H", "Inventario S4H" }
+                        { "Item", "Item" },
+                        { "Centro Logístico", "Centro Logístico" },
+                        { "Almacén", "Almacén" },
+                        { "Material", "Material" },
+                        { "Inventario BCN", "Inventario BCN" },
+                        { "UM BCN", "UM BCN" },
+                        { "Inventario ECC", "Inventario ECC" },
+                        { "UM ECC", "UM ECC" },
+                        { "Diferencia BCN-ECC", "Diferencia BCN-ECC" },
+                        { "Inventario S4H", "Inventario S4H" },
+                        { "UM S4H", "UM S4H" }
                     };
 
                 case "07": // ARES: Rev. Comparativo Costos
+                    // Python: vTagQuery = "COSTOSAP" - consulta comparativo de costos
                     return new Dictionary<string, string>
                     {
                         { "Item", "Item" },
@@ -1596,13 +1926,16 @@ namespace NetBcnModule.Presentation.Controllers
                 // Si viewDataIntegrar es true, usar IntegrarView para obtener los datos integrados
                 if (viewDataIntegrar)
                 {
-                    var fechaIni = consultaIni?.ToString("yyyy-MM-dd HH:mm:ss") ?? DateTime.Today.ToString("yyyy-MM-dd HH:mm:ss");
-                    var fechaFin = consultaFin?.ToString("yyyy-MM-dd HH:mm:ss") ?? DateTime.Today.ToString("yyyy-MM-dd HH:mm:ss");
-                    return await IntegrarView(option, fechaIni, fechaFin, useInitialDate);
+                    var fechaIni = FormatDateTime(consultaIni ?? DateTime.Today);
+                    var fechaFin = FormatDateTime(consultaFin ?? DateTime.Today);
+                    return await IntegrarView(option, fechaIni, fechaFin, useInitialDate, viewDataIntegrar);
                 }
 
                 var userAudit = "AdminBCN"; // Default user, could be made configurable
-                var dateFrom = consultaIni ?? DateTime.Today;
+                
+                // Note: Date normalization rules are applied in DataProcessingService.cs
+                // No need to apply them here to avoid duplication
+                var dateFrom  = consultaIni ?? DateTime.Today;
                 var dateTo = consultaFin ?? DateTime.Today;
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -1615,7 +1948,7 @@ namespace NetBcnModule.Presentation.Controllers
                 // Check if this option should only return integration information
                 if (integrationOnlyOptions.Contains(option))
                 {
-                    // Process integration and wait for the result to get the record count
+                    // Process integration and wait for the result to get the record count    
                     var integrationResult = await _dataProcessingService.ProcessOperationalInfoAsync(
                         option, _queriesService, userAudit, dateFrom, dateTo, useInitialDate);
 
@@ -1650,22 +1983,32 @@ namespace NetBcnModule.Presentation.Controllers
                 switch (option)
                 {
                     case "01": // AORA: Inventario operativo
-                        // For inventory queries, use the date selection logic
-                        var inventoryDate = useInitialDate ? dateFrom.AddMinutes(-1) : dateTo.AddSeconds(-59);
-                        _loggingService.WriteInfo($"AORA Inventory: using inventoryDate={inventoryDate} (useInitialDate={useInitialDate})");
+                        
+                        var inventoryDate = useInitialDate ? dateFrom : dateTo;
+                        _loggingService.WriteInfo($"AORA Inventory: using inventoryDate={FormatDateTime(inventoryDate)} (useInitialDate={useInitialDate})");
                         dataResult = await _bcnModuleService.GetAoraInventoryAsync(inventoryDate);
                         break;
                     case "04": // ROMSS: Inventario operativo
-                        // For inventory queries, use the date selection logic
-                        var romssInventoryDate = useInitialDate ? dateFrom : dateTo.AddSeconds(1);
-                        _loggingService.WriteInfo($"ROMSS Inventory: using romssInventoryDate={romssInventoryDate} (useInitialDate={useInitialDate})");
+
+                        var romssInventoryDate = useInitialDate ? dateFrom : dateTo;
+                        _loggingService.WriteInfo($"[ROMSS INVENTORY INTEGRATION] Executing ROMSS Inventario Operativo integration");
+                        _loggingService.WriteInfo($"[ROMSS INVENTORY INTEGRATION] Date range: {FormatDateTime(dateFrom)} to {FormatDateTime(dateTo)}");
+                        _loggingService.WriteInfo($"[ROMSS INVENTORY INTEGRATION] Using inventory date: {FormatDateTime(romssInventoryDate)} (useInitialDate={useInitialDate})");
                         dataResult = await _bcnModuleService.GetRomssInventoryAsync(romssInventoryDate);
                         break;
+                    case "05": 
+                        dataResult = await _bcnModuleService.GetRomssMovementsAsync(dateFrom, dateTo);
+                        break;
                     case "06": // BCN: Foto inventario operativo
-                        // For inventory queries, use the date selection logic
-                        var photoDate = useInitialDate ? dateFrom.AddMinutes(-1) : dateTo.AddSeconds(-59);
-                        _loggingService.WriteInfo($"BCN Inventory Photo: using photoDate={photoDate} (useInitialDate={useInitialDate})");
+                        
+                        var photoDate = useInitialDate ? dateFrom : dateTo;
+                        _loggingService.WriteInfo($"BCN Inventory Photo: using photoDate={FormatDateTime(photoDate)} (useInitialDate={useInitialDate})");
                         dataResult = await _bcnModuleService.GetBcnInventoryPhotoAsync(photoDate);
+                        break;
+                    case "07": // ARES: Movimientos HPI
+                        _loggingService.WriteInfo($"[ARES HPI MOVEMENTS] Executing ARES HPI Movements integration");
+                        _loggingService.WriteInfo($"[ARES HPI MOVEMENTS] Using date: {FormatDateTime(dateFrom)}");
+                        dataResult = await _bcnModuleService.GetHpiMovementsAsync(dateFrom);
                         break;
                     case "08": // BCN: Balance operativo
                         var balanceData = await _queriesService.GetBcnBalanceOperativoAsync(consultaIni.Value, consultaFin.Value, idCaso: 4);
@@ -1725,9 +2068,9 @@ namespace NetBcnModule.Presentation.Controllers
                 var dateFrom = consultaIni ?? DateTime.Today;
                 var dateTo = consultaFin ?? DateTime.Today;
 
-                _loggingService.WriteInfo($"Starting consolidation process: option={option}, dateFrom={dateFrom}, dateTo={dateTo}");
+                _loggingService.WriteInfo($"Starting consolidation process: option={option}, dateFrom={FormatDateTime(dateFrom)}, dateTo={FormatDateTime(dateTo)}, useInitialDate={useInitialDate}");
 
-                if (option == "07" || option == "08")
+                if (option == "07" || option == "08" || option == "09")
                 {
                     var result = await _dataProcessingService.ProcessConsolidatedInfoAsync(
                         option, _queriesService, userAudit, dateFrom, dateTo, useInitialDate);
@@ -1752,9 +2095,9 @@ namespace NetBcnModule.Presentation.Controllers
                     switch (option)
                     {
                         case "01": // BCN: Inventarios consolidados
-                            // For inventory queries, use the date selection logic
-                            var consolidatedInventoryDate = useInitialDate ? dateFrom.AddMinutes(-1) : dateTo.AddSeconds(-59);
-                            _loggingService.WriteInfo($"BCN Consolidated Inventory: using consolidatedInventoryDate={consolidatedInventoryDate} (useInitialDate={useInitialDate})");
+                            
+                            var consolidatedInventoryDate = useInitialDate ? dateFrom : dateTo;
+                            _loggingService.WriteInfo($"BCN Consolidated Inventory: using consolidatedInventoryDate={FormatDateTime(consolidatedInventoryDate)} (useInitialDate={useInitialDate})");
                             dataResult = await _bcnModuleService.GetBcnConsolidatedInventoryBalanceAsync(consolidatedInventoryDate, 5);
                             break;
                 case "02": // BCN: Movimientos consolidados
@@ -1770,9 +2113,9 @@ namespace NetBcnModule.Presentation.Controllers
                             dataResult = await _bcnModuleService.GetBcnBalanceUnidadProcesoAsync(consultaIni, consultaFin);
                             break;
                 case "06": // BCN: Foto inventario consolidado
-                            // For inventory photo queries, use the date selection logic
-                            var consolidatedPhotoDate = useInitialDate ? dateFrom.AddMinutes(-1) : dateTo.AddSeconds(-59);
-                            _loggingService.WriteInfo($"BCN Consolidated Inventory Photo: using consolidatedPhotoDate={consolidatedPhotoDate} (useInitialDate={useInitialDate})");
+                            
+                            var consolidatedPhotoDate = useInitialDate ? dateFrom : dateTo;
+                            _loggingService.WriteInfo($"BCN Consolidated Inventory Photo: using consolidatedPhotoDate={FormatDateTime(consolidatedPhotoDate)} (useInitialDate={useInitialDate})");
                             dataResult = await _bcnModuleService.GetBcnConsolidatedInventoryPhotoAsync(consolidatedPhotoDate);
                             break;
                 default:
@@ -1818,7 +2161,7 @@ namespace NetBcnModule.Presentation.Controllers
                 var dateFrom = consultaIni ?? DateTime.Today;
                 var dateTo = consultaFin ?? DateTime.Today;
 
-                _loggingService.WriteInfo($"Starting balance process: option={option}, dateFrom={dateFrom}, dateTo={dateTo}");
+                _loggingService.WriteInfo($"Starting balance process: option={option}, dateFrom={FormatDateTime(dateFrom)}, dateTo={FormatDateTime(dateTo)}");
 
                 // Process balance using DataProcessingService (replicates Python InfBalance logic)
                 _= Task.Run(async () => 
@@ -1832,18 +2175,22 @@ namespace NetBcnModule.Presentation.Controllers
                     switch (option)
                     {
                         case "01": // Movimientos logísticos
+                            
                             dataResult = await _bcnModuleService.GetLogisticMovementsAsync(consultaIni, consultaFin);
                             break;
                         case "02": // Movimientos de costos
                             dataResult = await _bcnModuleService.GetCostMovementsAsync(consultaIni, consultaFin);
                             break;
                         case "03": // Balance GRB CeLo: 2000
+                            
                             dataResult = await _bcnModuleService.GetBalanceGrbCelo2000Async(consultaIni, consultaFin);
                             break;
                         case "04": // Balance Reexpido CeLo: 3501
+                            
                             dataResult = await _bcnModuleService.GetBalanceReexpidoCelo3501Async(consultaIni, consultaFin);
                             break;
                         case "05": // Balance Impala CeLo: 4130
+                            
                             dataResult = await _bcnModuleService.GetBalanceImpalaCelo4130Async(consultaIni, consultaFin);
                             break;
                         default:
@@ -1880,7 +2227,7 @@ namespace NetBcnModule.Presentation.Controllers
         }
 
         /// <summary>
-        /// Execute ARES queries (options 01-03) - returns data for manual sending
+        /// Execute ARES queries (options 01-07) - returns data for manual sending
         /// </summary>
         private async Task<QueryResult> ExecuteAresQuery(string option, DateTime? consultaIni, DateTime? consultaFin, bool useInitialDate = false, CancellationToken cancellationToken = default)
         {
@@ -1890,46 +2237,48 @@ namespace NetBcnModule.Presentation.Controllers
                 cancellationToken.ThrowIfCancellationRequested();
 
                 switch (option)
-            {
-                case "01": // Inventario logístico para ARES
+                {
+                    case "01": // Inventario logístico para ARES
                         var inventoryData = await _queriesService.GetWsLogisticInventoryAsync(consultaIni ?? DateTime.Today, consultaFin ?? DateTime.Today);
                         return ConvertInventoryToAresPayload(inventoryData);
                         
-                case "02": // Movimiento logístico para ARES
+                    case "02": // Movimiento logístico para ARES
                         var movementData = await _queriesService.GetWsLogisticMovementsAsync(consultaIni ?? DateTime.Today, consultaFin ?? DateTime.Today, "AND ml.txProcesamiento NOT LIKE 'Documento:%'");
                         return ConvertMovementToAresPayload(movementData);
                         
-                case "03": // Movimiento de costos para ARES
+                    case "03": // Movimiento de costos para ARES
                         var costData = await _queriesService.GetWsCostsAsync(consultaIni ?? DateTime.Today, consultaFin ?? DateTime.Today);
                         return ConvertCostToAresPayload(costData);
                         
-                case "04": // ARES: Rev. Procesamiento Logistico
-                        // Llamar al web service SAP ECC ECP para inventarios (igual que Python)
-                        var inventoryDate = useInitialDate ? consultaIni.Value : consultaFin.Value;
-                        _loggingService.WriteInfo($"ARES Logistic Review: calling SAP ECC ECP web service for inventory date={inventoryDate}");
+                    case "04": // ARES: Rev. Procesamiento Logistico
+                        // Python: vTagQuery = "MOVLOGISTICOOK" - consulta movimientos logísticos procesados
+                        // Python usa la fecha de contabilización (fechaIni) para esta opción
+                        _loggingService.WriteInfo($"ARES Logistic Review: calling SAP ECC ECP web service for inventory date={FormatDateTime(consultaIni)}");
                         var logisticReviewData = await _bcnModuleService.CallSapEccEcpWebServiceAsync("INVENTARIO", consultaIni, consultaFin);
                         return logisticReviewData;
                         
-                case "05": // ARES: Rev. Procesamiento Costo
-                        // Llamar al web service SAP ECC ECP para costos (igual que Python)
+                    case "05": // ARES: Rev. Procesamiento Costo
+                        // Python: vTagQuery = "MOVCOSTOOK" - consulta movimientos de costos procesados
+                        // Python usa la fecha de contabilización (fechaIni) para esta opción
                         _loggingService.WriteInfo($"ARES Cost Review: calling SAP ECC ECP web service for cost period");
                         var costReviewData = await _bcnModuleService.CallSapEccEcpWebServiceAsync("CECO", consultaIni, consultaFin);
                         return costReviewData;
 
-                case "06": // ARES: Rev. Comparativo Inventario
-                        // Llamar al web service SAP ECC ECP para inventarios (igual que Python)
-                        var inventoryDate2 = useInitialDate ? consultaIni.Value.AddMinutes(-1) : consultaFin.Value.AddSeconds(-59);
-                        _loggingService.WriteInfo($"ARES Inventory Comparison: calling SAP ECC ECP web service for inventory date={inventoryDate2}");
+                    case "06": // ARES: Rev. Comparativo Inventario
+                        // Python: vTagQuery = "INVENTARIOSAPECC" - consulta comparativo de inventarios
+                        // Python usa la fecha de contabilización (fechaFin) para esta opción
+                        _loggingService.WriteInfo($"ARES Inventory Comparison: calling SAP ECC ECP web service for inventory date={FormatDateTime(consultaFin)}");
                         var inventoryComparisonData = await _bcnModuleService.CallSapEccEcpWebServiceAsync("INVENTARIO", consultaIni, consultaFin);
                         return inventoryComparisonData;
                         
-                case "07": // ARES: Rev. Comparativo Costos
-                        // Llamar al web service SAP ECC ECP para costos (igual que Python)
+                    case "07": // ARES: Rev. Comparativo Costos
+                        // Python: vTagQuery = "COSTOSAP" - consulta comparativo de costos
+                        // Python usa la fecha de contabilización (fechaFin) para esta opción
                         _loggingService.WriteInfo($"ARES Cost Comparison: calling SAP ECC ECP web service for cost period");
                         var costComparisonData = await _bcnModuleService.CallSapEccEcpWebServiceAsync("CECO", consultaIni, consultaFin);
                         return costComparisonData;
-                default:
-                    return new QueryResult { Message = $"Unknown ares option: {option}" };
+                    default:
+                        return new QueryResult { Message = $"Unknown ares option: {option}" };
                 }
             }
             catch (OperationCanceledException)
@@ -1975,17 +2324,14 @@ namespace NetBcnModule.Presentation.Controllers
                         var jsonProperty = prop.GetCustomAttribute<JsonPropertyAttribute>();
                         var columnName = jsonProperty?.PropertyName ?? prop.Name;
                         
-                        // Formatear números decimales con máximo 3 decimales
-                        if (value != null && (prop.PropertyType == typeof(decimal) || prop.PropertyType == typeof(decimal?)))
+                        // Formatear números decimales con exactamente 3 decimales
+                        if (value != null && (prop.PropertyType == typeof(decimal) || prop.PropertyType == typeof(decimal?) || 
+                                             prop.PropertyType == typeof(double) || prop.PropertyType == typeof(double?) ||
+                                             prop.PropertyType == typeof(float) || prop.PropertyType == typeof(float?) ||
+                                             prop.PropertyType == typeof(int) || prop.PropertyType == typeof(int?) ||
+                                             prop.PropertyType == typeof(long) || prop.PropertyType == typeof(long?)))
                         {
-                            if (value is decimal decimalValue)
-                            {
-                                dict[columnName] = Math.Round(decimalValue, 3);
-                            }
-                            else
-                            {
-                                dict[columnName] = value;
-                            }
+                            dict[columnName] = FormatDecimalWith3Places(value);
                         }
                         else
                         {
@@ -2028,16 +2374,16 @@ namespace NetBcnModule.Presentation.Controllers
 
                 var payload = new Dictionary<string, object>
                 {
-                    ["dtContabilizacion"] = inventory.DtContabilizacion.ToString("yyyy-MM-dd HH:mm:ss"),
+                    ["dtContabilizacion"] = FormatDateTime(inventory.DtContabilizacion),
                     ["idRecurso"] = inventory.NmRecAlmacen,
                     ["idProducto"] = inventory.NmRecProducto,
                     ["idCELO"] = inventory.NbCenLog,
                     ["idALMACEN"] = inventory.NbAlmLog,
                     ["idMaterial"] = inventory.NbMaterial,
-                    ["vlContable"] = Math.Round(inventory.VlContable, 3).ToString(CultureInfo.InvariantCulture),
+                    ["vlContable"] = FormatDecimalWith3Places(inventory.VlContable),
                     ["idUMContable"] = inventory.IdUM,
                     ["idUsrAuditoria"] = "AdminBCN",
-                    ["dtUsrAuditoria"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    ["dtUsrAuditoria"] = FormatDateTime(DateTime.Now)
                 };
 
                 result.Data.Add(payload);
@@ -2059,7 +2405,7 @@ namespace NetBcnModule.Presentation.Controllers
 				"clsMovimiento","TransactionCodeSAP","StockTypeSAP","NumPedido","PosPedido",
 				"idRecOrigen","idProdOrigen","idRecDestino","idProdDestino",
 				"idSRCCELO","idSRCALMACEN","idSRCMaterial","idDSTCCELO","idDSTALMACEN","idDSTMaterial",
-				"vlContable","idUMContable","idCentroCosto","txEstadoEnvio","vlAtrCalidad","idUMAtrCalidad",
+				"vlContable","idUMContable","nbCentroCosto","txEstadoEnvio","vlAtrCalidad","idUMAtrCalidad",
 				"vlCantidaadQCI","idUMCantidadQCI","txCantidadQCI","IdPropiedad","jsMovimiento","jsonMovimientos","idUsrAuditoria","dtUsrAuditoria"
 			};
 
@@ -2073,10 +2419,10 @@ namespace NetBcnModule.Presentation.Controllers
                 var payload = new Dictionary<string, object>
                 {
                     ["IDMessage"] = movement.IdRegMovLogistico.ToString(),
-                    ["dtContabilizacion"] = movement.DtContabilizacion.ToString("yyyy-MM-dd HH:mm:ss"),
+                    ["dtContabilizacion"] = FormatDateTime(movement.DtContabilizacion),
                     ["idMovimiento"] = movement.IdRegMovLogistico.ToString(),
-                    ["dtMovimientoIni"] = movement.DtMovimientoIni.ToString("yyyy-MM-dd HH:mm:ss"),
-                    ["dtMovimientoFin"] = movement.DtMovimientoFin.ToString("yyyy-MM-dd HH:mm:ss"),
+                    ["dtMovimientoIni"] = FormatDateTime(movement.DtMovimientoIni),
+                    ["dtMovimientoFin"] = FormatDateTime(movement.DtMovimientoFin),
                     ["tpMovimiento"] = movement.TpMovimiento,
                     ["clsMovimiento"] = movement.NbMovimientoCls,
                     ["TransactionCodeSAP"] = movement.NbGM,
@@ -2093,9 +2439,9 @@ namespace NetBcnModule.Presentation.Controllers
                     ["idDSTCCELO"] = movement.NbCenLogDestino,
                     ["idDSTALMACEN"] = movement.NbAlmLogDestino,
                     ["idDSTMaterial"] = movement.NbProdLogDestino,
-                    ["vlContable"] = movement.VlContable.ToString(CultureInfo.InvariantCulture),
+                    ["vlContable"] = FormatDecimalWith3Places(movement.VlContable),
                     ["idUMContable"] = movement.IdUM,
-                    ["idCentroCosto"] = movement.IdCentroCosto ?? string.Empty,
+                    ["nbCentroCosto"] = movement.nbCentroCosto ?? string.Empty,
                     ["txEstadoEnvio"] = movement.TxProcesamiento ?? string.Empty,
                     ["vlAtrCalidad"] = movement.VlAtrCalidad ?? string.Empty,
                     ["idUMAtrCalidad"] = movement.IdUMAtrCalidad ?? string.Empty,
@@ -2106,7 +2452,7 @@ namespace NetBcnModule.Presentation.Controllers
                     ["jsMovimiento"] = GenerateMovementLogisticJson(movement),
 					["jsonMovimientos"] = GenerateMovementLogisticJson(movement),
                     ["idUsrAuditoria"] = "AdminBCN",
-                    ["dtUsrAuditoria"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    ["dtUsrAuditoria"] = FormatDateTime(DateTime.Now)
                 };
 
                 result.Data.Add(payload);
@@ -2209,19 +2555,19 @@ namespace NetBcnModule.Presentation.Controllers
 
             // Selección de cantidad y UM según NumPedido como en Python
             var cantNs = string.IsNullOrEmpty(movement.NumPedido)
-                ? Math.Round(movement.VlContable, 3).ToString(CultureInfo.InvariantCulture)
-                : (movement.VlQCI ?? "0");
+                ? FormatDecimalWith3Places(movement.VlContable)
+                : (movement.VlQCI ?? "0.000");
             var cantNsUm = string.IsNullOrEmpty(movement.NumPedido)
                 ? (movement.IdUM ?? "")
                 : (movement.IdUMQCI ?? "");
 
             // Reemplazar placeholders con valores del movimiento
             jsonString = jsonString
-                .Replace("[dtCargue]", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                .Replace("[dtCargue]", FormatDateTime(DateTime.Now))
                 .Replace("[idMsg]", movement.IdRegMovLogistico.ToString())
                 .Replace("[idMsgMovimiento]", $"SM-ARES-{movement.IdRegMovLogistico}")
-                .Replace("[dtMovIni]", movement.DtMovimientoIni.ToString("yyyy-MM-dd HH:mm:ss"))
-                .Replace("[dtMovFin]", movement.DtMovimientoFin.ToString("yyyy-MM-dd HH:mm:ss"))
+                .Replace("[dtMovIni]", FormatDateTime(movement.DtMovimientoIni))
+                .Replace("[dtMovFin]", FormatDateTime(movement.DtMovimientoFin))
                 .Replace("[numPedido]", movement.NumPedido ?? "")
                 .Replace("[posPedido]", movement.PosPedido ?? "")
                 .Replace("[nbClsMov]", movement.NbMovimientoCls ?? "")
@@ -2235,7 +2581,7 @@ namespace NetBcnModule.Presentation.Controllers
                 .Replace("[nbProdDestino]", movement.NbProdLogDestino ?? "")
                 .Replace("[CantNS]", cantNs)
                 .Replace("[cantNSUM]", cantNsUm)
-                .Replace("[nbCentroCosto]", movement.IdCentroCosto ?? "")
+                .Replace("[nbCentroCosto]", movement.nbCentroCosto ?? "")
                 .Replace("[txQCI]", movement.TxQCI ?? "")
                 .Replace("[idAtrCalidad]", movement.IdAtrCalidad ?? "")
                 .Replace("[vlAtrCalidad]", movement.VlAtrCalidad ?? "")
@@ -2272,15 +2618,15 @@ namespace NetBcnModule.Presentation.Controllers
                     ["idMessage"] = cost.IdRegCosto.ToString(),
                     ["tpObjCostos"] = cost.TpObjCosto,
                     ["txMovimiento"] = $"{cost.TpObjCosto}: {cost.IdObjCosto} - {cost.ObjEstadistico}",
-                    ["dtContabilizacion"] = cost.DtContabilizacion.ToString("yyyy-MM-dd HH:mm:ss"),
+                    ["dtContabilizacion"] = FormatDateTime(cost.DtContabilizacion),
                     ["idObjCosto"] = cost.IdObjCosto,
                     ["idValEstadistico"] = cost.ObjEstadistico,
                     ["nmProducto"] = cost.NmProducto,
                     ["idUM"] = cost.IdUM,
-                    ["vlContabilizado"] = Math.Round(cost.VlContable, 3).ToString(CultureInfo.InvariantCulture),
+                    ["vlContabilizado"] = FormatDecimalWith3Places(cost.VlContable),
                     ["jsMovimiento"] = cost.TxMovimiento,
                     ["idUsrAuditoria"] = "AdminBCN",
-                    ["dtUsrAuditoria"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    ["dtUsrAuditoria"] = FormatDateTime(DateTime.Now)
                 };
 
                 result.Data.Add(payload);
@@ -2399,8 +2745,65 @@ namespace NetBcnModule.Presentation.Controllers
                 _loggingService.WriteInfo($"ExportToExcel - Fechas: {fechaIni} - {fechaFin}, UseInitialDate: {useInitialDate}");
                 
                 // Get the data as you do in DynamicQuery
-                var (consultaIni, consultaFin) = NormalizeDateRange(fechaIni, fechaFin);
-                var result = await ExecuteQueryByTypeAndOption(type, option, consultaIni, consultaFin, useInitialDate, viewDataIntegrar);
+                DateTime? consultaIni, consultaFin;
+                
+                // Apply date normalization based on type and context (same as DynamicQuery)
+                if (viewDataIntegrar && type == "integrar")
+                {
+                    // For integrar visualization, use specific rules that consider viewDataIntegrar
+                    (consultaIni, consultaFin) = NormalizeDateRangeForIntegrarOption(fechaIni, fechaFin, option, useInitialDate, viewDataIntegrar);
+                }
+                else if (type == "consolidar")
+                {
+                    // Use specific consolidar date rules that replicate Python behavior exactly
+                    (consultaIni, consultaFin) = NormalizeDateRangeForConsolidarOption(fechaIni, fechaFin, option, useInitialDate);
+                }
+                else if (type == "logistica" && (option == "03" || option == "04" || option == "05"))
+                {
+                    (consultaIni, consultaFin) = NormalizeDateRangeForOption(fechaIni, fechaFin, option, useInitialDate);
+                }
+                else if (type == "ares" && (option == "04" || option == "05" || option == "06" || option == "07"))
+                {
+                    // Python: opciones 04 y 05 usan fechaIni, opciones 06 y 07 usan fechaFin
+                    (consultaIni, consultaFin) = NormalizeDateRangeForOption(fechaIni, fechaFin, option, useInitialDate);
+                }
+                else
+                {
+                    // Default normalization for other cases
+                    (consultaIni, consultaFin) = NormalizeDateRangeForOption(fechaIni, fechaFin, option, useInitialDate);
+                }
+                
+                QueryResult result;
+                
+                // Handle viewDataIntegrar the same way as DynamicQuery
+                if (viewDataIntegrar && type == "integrar")
+                {
+                    // Use the already normalized dates from above - ensure they are in standard format
+                    var fechaIniFormatted = consultaIni?.ToString("yyyy-MM-dd HH:mm:ss") ?? DateTime.Today.ToString("yyyy-MM-dd HH:mm:ss");
+                    var fechaFinFormatted = consultaFin?.ToString("yyyy-MM-dd HH:mm:ss") ?? DateTime.Today.ToString("yyyy-MM-dd HH:mm:ss");
+                    result = await IntegrarView(option, fechaIniFormatted, fechaFinFormatted, useInitialDate, viewDataIntegrar);
+                    
+                    // Apply the same transformation that ExecuteQueryByTypeAndOption does
+                    var propertyToDisplayMapping = GetPropertyToDisplayMapping(type, option);
+                    
+                    // Ensure result has valid properties to avoid null pointer exceptions
+                    if (result.Columns == null)
+                    {
+                        result.Columns = new List<string>();
+                    }
+
+                    if (result.Data == null)
+                    {
+                        result.Data = new List<Dictionary<string, object>>();
+                    }
+
+                    result.Columns = GetCustomColumnNames(type, option, result.Columns);
+                    result.Data = TransformDataToMatchColumns(result.Data, propertyToDisplayMapping);
+                }
+                else
+                {
+                    result = await ExecuteQueryByTypeAndOption(type, option, consultaIni, consultaFin, useInitialDate, viewDataIntegrar);
+                }
 
                 // Debug original result structure
                 DebugDataStructure(result, "Después de ExecuteQueryByTypeAndOption");
@@ -2512,17 +2915,17 @@ namespace NetBcnModule.Presentation.Controllers
                         {
                             var selectedDate = useInitialDate ? consultaIni : consultaFin;
                             var timeSuffix = useInitialDate ? " 00:00:00" : " 23:59:59";
-                            fechaConsultaText = $"Fecha de Consulta: {selectedDate:dd/MM/yyyy}{timeSuffix}";
+                            fechaConsultaText = $"Fecha de Consulta: {selectedDate:yyyy-MM-dd}{timeSuffix}";
                         }
                         else
                         {
                             if (consultaIni?.Date == consultaFin?.Date)
                             {
-                                fechaConsultaText = $"Fecha de Consulta: {consultaIni:dd/MM/yyyy} 00:00:00 - {consultaFin:dd/MM/yyyy} 23:59:59";
+                                fechaConsultaText = $"Fecha de Consulta: {consultaIni:yyyy-MM-dd} 00:00:00 - {consultaFin:yyyy-MM-dd} 23:59:59";
                             }
                             else
                             {
-                                fechaConsultaText = $"Rango de Consulta: {consultaIni:dd/MM/yyyy} 00:00:00 - {consultaFin:dd/MM/yyyy} 23:59:59";
+                                fechaConsultaText = $"Rango de Consulta: {consultaIni:yyyy-MM-dd} 00:00:00 - {consultaFin:yyyy-MM-dd} 23:59:59";
                             }
                         }
                     }
@@ -2533,9 +2936,8 @@ namespace NetBcnModule.Presentation.Controllers
                     worksheet.Range(currentRow, 1, currentRow, colCount).Style.Font.FontSize = 12;
                     currentRow++;
 
-                    worksheet.Range(currentRow, 1, currentRow, colCount).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                    worksheet.Range(currentRow, 1, currentRow, colCount).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-                    worksheet.Range(currentRow, 1, currentRow, colCount).Style.Font.FontSize = 12;
+                    // Línea en blanco
+                    worksheet.Range(currentRow, 1, currentRow, colCount).Merge();
                     currentRow++;
 
                     worksheet.Range(currentRow, 1, currentRow, colCount).Merge().Value = "PROPIETARIO: ECP";
@@ -2544,12 +2946,15 @@ namespace NetBcnModule.Presentation.Controllers
                     worksheet.Range(currentRow, 1, currentRow, colCount).Style.Font.FontSize = 12;
                     currentRow++;
 
-                    worksheet.Cell(currentRow, 1).Value = $"Fecha Generación\n{DateTime.Now:dd/MM/yyyy HH:mm:ss}";
-                    worksheet.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
-                    worksheet.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-                    worksheet.Cell(currentRow, colCount).Value = $"Usuario: AdminBCN\nIP Máquina: 127.0.0.1";
-                    worksheet.Cell(currentRow, colCount).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-                    worksheet.Cell(currentRow, colCount).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                    // Fecha de generación en la izquierda
+                    worksheet.Range(currentRow, 1, currentRow, 3).Merge().Value = $"Fecha Generación \n{DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+                    worksheet.Range(currentRow, 1, currentRow, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                    worksheet.Range(currentRow, 1, currentRow, 3).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                    
+                    // Usuario y Máquina en la derecha, separados en líneas diferentes
+                    worksheet.Range(currentRow, colCount - 4, currentRow, colCount).Merge().Value = "Usuario: AdminBCN \nIP Máquina: 127.0.0.1";
+                    worksheet.Range(currentRow, colCount - 4, currentRow, colCount).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                    worksheet.Range(currentRow, colCount - 4, currentRow, colCount).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                     currentRow++;
 
                     // Ajustar headerRows si se agregó la línea de tipo de inventario
@@ -2558,10 +2963,16 @@ namespace NetBcnModule.Presentation.Controllers
                         headerRows = 7; // Una fila más por el tipo de inventario
                     }
 
-                    // Bordes y fondo para el área del encabezado
-                    worksheet.Range(1, 1, headerRows, colCount).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                    worksheet.Range(1, 1, headerRows, colCount).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                    // Aplicar fondo y borde exterior al área del header completo
                     worksheet.Range(1, 1, headerRows, colCount).Style.Fill.BackgroundColor = XLColor.WhiteSmoke;
+                    worksheet.Range(1, 1, headerRows, colCount).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    
+                    // Combinar solo las filas individuales del header para evitar bordes internos
+                    // pero mantener la información visible en cada fila
+                    for (int row = 1; row <= headerRows; row++)
+                    {
+                        worksheet.Range(row, 1, row, colCount).Merge();
+                    }
 
                     // Encabezados de columna (empezando después del encabezado)
                     for (int i = 0; i < result.Columns.Count; i++)
@@ -2583,8 +2994,25 @@ namespace NetBcnModule.Presentation.Controllers
                         for (int col = 0; col < result.Columns.Count; col++)
                         {
                             var colName = result.Columns[col];
-                            var cellValue = GetSafeCellValue(rowData, colName);
-                            worksheet.Cell(headerRows + 2 + row, col + 1).SetValue(cellValue);
+                            var cellValue = rowData[colName];
+                            
+                            var cell = worksheet.Cell(headerRows + 2 + row, col + 1);
+                            _loggingService.WriteInfo($"ExportToExcel  - COLUMNA NAME {colName}");
+                            var notFormatColumns = new HashSet<string> { "Item", "API", "Api"};
+                            
+                            // Set the value based on its type
+                            if ((cellValue is decimal || cellValue is double || cellValue is float || cellValue is int || cellValue is long) && !notFormatColumns.Contains(colName))
+                            {
+                                // Format number to match interface display (period as thousands separator, comma as decimal separator)
+                                // var formattedValue = FormatNumberForInterface(cellValue);
+                                cell.Value = cellValue;
+                                cell.Style.NumberFormat.NumberFormatId = 4;
+                                // cell.Style.NumberFormat.Format = "#,##0.00";
+                            }
+                            else
+                            {
+                                cell.Value = cellValue?.ToString() ?? "";
+                            }
                         }
                         
                         // Log progress every 100 rows
@@ -2598,13 +3026,29 @@ namespace NetBcnModule.Presentation.Controllers
 
                     using (var stream = new MemoryStream())
                     {
-                        workbook.SaveAs(stream);
-                        stream.Position = 0;
-                        var fileName = $"export_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-                        
-                        _loggingService.WriteInfo($"ExportToExcel - Archivo generado exitosamente: {fileName}, Tamaño: {stream.Length} bytes");
-                        
-                        return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+                        try
+                        {
+                            workbook.SaveAs(stream);
+                            stream.Position = 0;
+                            
+                            // Validate that the stream has content
+                            if (stream.Length == 0)
+                            {
+                                _loggingService.WriteError("ExportToExcel - El archivo Excel generado está vacío");
+                                return Json(new { success = false, message = "Error al generar el archivo Excel: archivo vacío" });
+                            }
+                            
+                            var fileName = $"export_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                            
+                            _loggingService.WriteInfo($"ExportToExcel - Archivo generado exitosamente: {fileName}, Tamaño: {stream.Length} bytes");
+                            
+                            return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+                        }
+                        catch (Exception ex)
+                        {
+                            _loggingService.WriteError($"ExportToExcel - Error al guardar el archivo Excel: {ex.Message}");
+                            return Json(new { success = false, message = $"Error al generar el archivo Excel: {ex.Message}" });
+                        }
                     }
                 }
             }
@@ -2614,6 +3058,73 @@ namespace NetBcnModule.Presentation.Controllers
                 _loggingService.WriteError($"ExportToExcel - Stack trace: {ex.StackTrace}");
                 return Json(new { success = false, message = $"Error durante la exportación: {ex.Message}" });
             }
+        }
+
+        /// <summary>
+        /// Format number to match interface display (period as thousands separator, comma as decimal separator)
+        /// </summary>
+        private string FormatNumberForInterface(object value)
+        {
+            if (value == null) return "";
+            
+            if (value is decimal decimalValue)
+            {
+                return FormatDecimalForInterface(decimalValue);
+            }
+            else if (value is double doubleValue)
+            {
+                return FormatDecimalForInterface((decimal)doubleValue);
+            }
+            else if (value is float floatValue)
+            {
+                return FormatDecimalForInterface((decimal)floatValue);
+            }
+            else if (value is int intValue)
+            {
+                return FormatDecimalForInterface((decimal)intValue);
+            }
+            else if (value is long longValue)
+            {
+                return FormatDecimalForInterface((decimal)longValue);
+            }
+            
+            return value.ToString();
+        }
+
+        /// <summary>
+        /// Format decimal value to match interface display
+        /// </summary>
+        private string FormatDecimalForInterface(decimal value)
+        {
+            _loggingService.WriteInfo($"FormatDecimalForInterface - Value: {value}");
+
+            var formatted = value.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture);
+
+            _loggingService.WriteInfo($"FormatDecimalForInterface - Formatted: {formatted}");
+            // Split by decimal point
+            var parts = formatted.Split('.');
+            var integerPart = parts[0];
+            var decimalPart = parts[1];
+            _loggingService.WriteInfo($"FormatDecimalForInterface - Integer Part: {integerPart}, Decimal Part: {decimalPart}");
+            
+            // Add thousands separators (period) to integer part
+            if (integerPart.Length > 3)
+            {
+                var result = "";
+                var count = 0;
+                for (int i = integerPart.Length - 1; i >= 0; i--)
+                {
+                    if (count > 0 && count % 3 == 0)
+                    {
+                        result = "." + result;
+                    }
+                    result = integerPart[i] + result;
+                    count++;
+                }
+                integerPart = result;
+            }
+            
+            return integerPart + "," + decimalPart;
         }
 
         /// <summary>

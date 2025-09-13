@@ -16,7 +16,7 @@ namespace DotNetBcnModule.Services.Contracts
         /// <summary>
         /// Processes XML items through stored procedure (replicating Python logic)
         /// </summary>
-        Task<bool> ProcessXmlItemsAsync(List<string> xmlItems, string userAudit, string source, string tagQuery);
+        Task<(bool Success, string ErrorMessage)> ProcessXmlItemsAsync(List<string> xmlItems, string userAudit, string source, string tagQuery);
 
         /// <summary>
         /// Processes operational information integration

@@ -175,7 +175,7 @@ def EnvioARES(ItpInfo, IarrParametros, IUsrAuditoria):
                     else:
                         vtxJSONAux = vtxJSONAux.replace('[CantNS]', str(vDatosRS[I]["vlQCI"]))
                         vtxJSONAux = vtxJSONAux.replace('[cantNSUM]', str(vDatosRS[I]["idUMQCI"]))                    	
-                    vtxJSONAux = vtxJSONAux.replace('[nbCentroCosto]', str(vDatosRS[I]["idCentroCosto"]))            
+                    vtxJSONAux = vtxJSONAux.replace('[nbCentroCosto]', str(vDatosRS[I]["nbCentroCosto"]))            
                     vtxJSONAux = vtxJSONAux.replace('[txAtrCalidad]', str(vDatosRS[I]["txAtrCalidad"]))
                     vtxJSONAux = vtxJSONAux.replace('[txQCI]', str(vDatosRS[I]["txQCI"]))
     
@@ -191,7 +191,7 @@ def EnvioARES(ItpInfo, IarrParametros, IUsrAuditoria):
                     # "IDMessageARES": "1000099",                
                     vPayLoad = {"IDMessage": str(vDatosRS[I]["idRegMovLogistico"]),                        
                                 "dtContabilizacion": str(vDatosRS[I]["dtContabilizacion"]),
-                                "idMovimiento": str(vDatosRS[I]["idRegMovLogistico"]),   
+                                "idMovimiento": str(vDatosRS[I]["idMovimientoReg"]),   
                                                     
                                 "dtMovimientoIni": str(vDatosRS[I]["dtMovimientoIni"]),
                                 "dtMovimientoFin": str(vDatosRS[I]["dtMovimientoFin"]),                        
@@ -219,7 +219,7 @@ def EnvioARES(ItpInfo, IarrParametros, IUsrAuditoria):
                                 
                                 "vlContable": str(vDatosRS[I]["vlContable"]),
                                 "idUMContable": str(vDatosRS[I]["idUM"]),
-                                "idCentroCosto": str(vDatosRS[I]["idCentroCosto"]),              
+                                "idCentroCosto": str(vDatosRS[I]["nbCentroCosto"]),              
                                 "txEstadoEnvio": str(vDatosRS[I]["txProcesamiento"]),                             
                                 "vlAtrCalidad": str(vDatosRS[I]["vlAtrCalidad"]),
                                 "idUMAtrCalidad": str(vDatosRS[I]["idUMAtrCalidad"]),                                                    
@@ -846,8 +846,8 @@ def getVisualizarInfoHTML(ItpInfo, IarrParametros, ItxRutaTrabajo):
                         vCad = vCad.replace('{NumPedido}', str(vDatosRS[I]["numPedido"]))
                         vCad = vCad.replace('{PosPedido}', str(vDatosRS[I]["posPedido"]))
                         vCad = vCad.replace('{idUMPedido}', str(vDatosRS[I]["idUMPedido"]))
-                        vCad = vCad.replace('{nbCeCo}', str(vDatosRS[I]["idCentroCosto"]))
-                        vCad = vCad.replace('{nmEstado}', str(vDatosRS[I]["nmEstado"]))
+                        vCad = vCad.replace('{nbCeCo}', str(vDatosRS[I]["nbCentroCosto"]))
+                        vCad = vCad.replace('{nmEstado}', str(vDatosRS[I]["txProcesamiento"]))
                     
                 elif vTag[:7] == "BALANCE" and (ItpInfo != "InfBalance" or ItpInfo == "InfOPerativo"):
                     vCad = vCad.replace('{ID}', str(vDatosRS[I]["idRecurso"]))
@@ -1360,23 +1360,36 @@ def getIntegrarInfo(ItpInfo, IarrParametros, IUsrAuditoria):
             if vEntrar == True:                            
                 vDatosRS = [{'dtInventario': vFechaAux}]
                 varrItems = getConvertirXML(vDatosRS, vTag)            
-                vEntrar = True        
+                vEntrar = True         
         elif vIdOpcion[:2] in ("02", "07", "08", "09"):        
             vTagQuery = "MOVCONSBCN"
             vTag = "Movimientos"
             if vIdOpcion[:2] == "07": # Opc Balance de Signo Contrario
                 vTagQuery = "RNSIGCONTRARIO"
-                vTag = "Movimientos"
-            elif vIdOpcion[:2] == "08": # Opc Regla de Balance
-                vTagQuery = "REGBALANCE"
-                vTag = "Movimientos"              
+                vTag = "Movimientos"                
             elif vIdOpcion[:2] == "09": # Opc Dif Balance
                 vTagQuery = "DIFBALANCE"
                 vTag = "Movimientos"
             vRespuesta = messagebox.askokcancel(message="¿Esta seguro que desea procesar información del sistema " + vIdOpcion[3:] + " ? \n\n Periodo Fecha Inicio: "+ str(dtFechaIni) + " hasta: "+ str(dtFechaFin) + " de ejecucion del  proceso", title = vFuente + " .::AppBCN")
-            if vRespuesta == True:
-                vDatosRS = [{'dtMovimientoIni': dtFechaIni, 'dtMovimientoFin': dtFechaFin}]
-                varrItems = getConvertirXML(vDatosRS, vTag)            
+            if vRespuesta == True:                  
+                if vIdOpcion[:2] == "08": # Opc Regla de Balance
+                    vTagQuery = "REGBALANCE"
+                    vTag = "Movimientos"        
+                    vDatosDB = IarrParametros["InfoDBBCN"]                                                                                    
+                    vSql = IarrParametros["xQuerys"].find("qry" + vTagQuery)             
+                    vSqlAux = vSql.text.strip() 
+                    vSqlAux = vSqlAux.replace('[dtConsultaIni]', str(dtFechaIni))
+                    vSqlAux = vSqlAux.replace('[dtConsultaFin]', str(dtFechaFin)) 
+                    # print("Algo ", vSqlAux, "\n")    
+                    vMsg, vDatosRS = oConectarDB(vDatosDB, vSqlAux)
+                    vCantRegistros = len(vDatosRS)                
+                    if len(vDatosRS):
+                        varrItems = getConvertirXML(vDatosRS, vTag) 
+                    else:
+                        vEntrar = False        
+                else:
+                    vDatosRS = [{'dtMovimientoIni': dtFechaIni, 'dtMovimientoFin': dtFechaFin}]
+                    varrItems = getConvertirXML(vDatosRS, vTag)            
             else:
                 vEntrar = False              
         else:
@@ -1520,10 +1533,10 @@ if __name__ == '__main__':
     vUsrAuditoria = "AdminBCN"
     # vdtContableIni = datetime.now().strftime("%Y-%m-") + "01 00:00:00"
     # vdtContableFin = datetime.now().strftime("%Y-%m-") + "01 23:59:59"    
-    # vdtContableIni = datetime.now().strftime("%Y-%m-") + "01"
-    # vdtContableFin = datetime.now().strftime("%Y-%m-") + "01"
-    vdtContableIni = datetime.now().strftime("%Y-") + "07-01"
-    vdtContableFin = datetime.now().strftime("%Y-") + "07-01"
+    vdtContableIni = datetime.now().strftime("%Y-%m-") + "01"
+    vdtContableFin = datetime.now().strftime("%Y-%m-") + "01"
+    # vdtContableIni = datetime.now().strftime("%Y-") + "07-01"
+    # vdtContableFin = datetime.now().strftime("%Y-") + "07-01"
         
     vArcXML = "Conf_BCN.xml"
     # Estructura para la gestion de los XML's 
@@ -1596,7 +1609,7 @@ if __name__ == '__main__':
         etiqueta05.place(x = PosX, y = PosY + 66)        
         
         # vLstOpciones = ["01. BCN: Inventario Inicial", "02. BCN: Inventario Final", "03. BCN: Movimientos", "04. BCN: Balance ALMACEN", "05. BCN: Balance POOL", "06. BCN: Balance UNIDAD DE PROCESO"]
-        vLstOpciones = ["01. BCN: Inventarios", "02. BCN: Movimientos", "03. BCN: Balance ALMACEN", "04. BCN: Balance POOL", "05. BCN: Balance UNIDAD DE PROCESO", "06. BCN: Foto Inventario", "07. BCN: Corregir  Bal. Sig. Contrario", "06. BCN: Aplicar Regla de Balance", "09. BCN: Diferencia Balance"]
+        vLstOpciones = ["01. BCN: Inventarios", "02. BCN: Movimientos", "03. BCN: Balance ALMACEN", "04. BCN: Balance POOL", "05. BCN: Balance UNIDAD DE PROCESO", "06. BCN: Foto Inventario", "07. BCN: Corregir  Bal. Sig. Contrario", "08. BCN: Aplicar Regla de Balance", "09. BCN: Diferencia Balance"]
         cmbConsolidarInfo = ttk.Combobox(values=vLstOpciones, width= 31, state='readonly')
         cmbConsolidarInfo.current(0)
         cmbConsolidarInfo.place(x = PosX + 135, y = PosY + 68)

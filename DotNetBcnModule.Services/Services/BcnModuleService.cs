@@ -90,7 +90,12 @@ namespace NetBcnModule.Services.Services
         {
             try
             {
+                _loggingService.WriteInfo($"GetRomssInventoryAsync: Executing ROMSS inventory query for date: {consultaIni ?? DateTime.Today}");
+                
                 var data = await _queriesService.GetRomssInventoryAsync(consultaIni ?? DateTime.Today);
+                
+                _loggingService.WriteInfo($"GetRomssInventoryAsync: Query executed successfully. Retrieved {data?.Count() ?? 0} records");
+                
                 return ConvertToQueryResult(data);
             }
             catch (Exception ex)
@@ -104,9 +109,13 @@ namespace NetBcnModule.Services.Services
         {
             try
             {
+                _loggingService.WriteInfo($"GetRomssMovementsAsync: Executing ROMSS movements query for date range: {consultaIni ?? DateTime.Today} to {consultaFin ?? DateTime.Today}");
+                
                 var data = await _queriesService.GetRomssMovementsAsync(
                     consultaIni ?? DateTime.Today, 
-                    consultaFin ?? DateTime.Today);
+                    consultaFin.Value.AddSeconds(1));
+                
+                _loggingService.WriteInfo($"GetRomssMovementsAsync: Query executed successfully. Retrieved {data?.Count() ?? 0} records");
                 
                 return ConvertToQueryResult(data);
             }
@@ -825,6 +834,7 @@ namespace NetBcnModule.Services.Services
                 };
 
                 var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                // Python usa: vFechaAuxF = IFechaFin[:10] - solo la fecha sin hora
                 var fechaAuxF = consultaFin?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd");
                 
                 string endpoint;
@@ -833,8 +843,12 @@ namespace NetBcnModule.Services.Services
 
                 if (infoType == "INVENTARIO")
                 {
+                    // Python: vTransaccionOrigen = "Comparativo de Inventarios"
                     transaccionOrigen = "Comparativo de Inventarios";
+                    // Python: vEndPoint = IarrParametros["InfoURLSAPECCECP"]["txURL"] + IarrParametros["InfoURLSAPECCECP"]["txMetodoInventario"]
                     endpoint = sapEccEcpConfig.txURL + sapEccEcpConfig.txMetodoInventario;
+                    // Python: arrCenLog = IarrParametros["InfoURLSAPECCECP"]["arrCenLog"]
+                    // Python: arrAlmLog = IarrParametros["InfoURLSAPECCECP"]["arrAlmLog"]
                     payload = new
                     {
                         FechaConsulta = fechaAuxF,
@@ -845,13 +859,16 @@ namespace NetBcnModule.Services.Services
                 }
                 else if (infoType == "CECO")
                 {
+                    // Python: vTransaccionOrigen = "Comparativo de Costos"
                     transaccionOrigen = "Comparativo de Costos";
+                    // Python: vEndPoint = IarrParametros["InfoURLSAPECCECP"]["txURL"] + IarrParametros["InfoURLSAPECCECP"]["txMetodoCosto"]
                     endpoint = sapEccEcpConfig.txURL + sapEccEcpConfig.txMetodoCosto;
                     
-                    // Extraer mes y año exactamente como en Python: str(IFechaFin[6:7]) y str(IFechaFin[:4])
+                    // Python: "Periodo": str(IFechaFin[6:7]) - extraer mes
+                    // Python: "Anio": str(IFechaFin[:4]) - extraer año
                     var fechaFinStr = consultaFin?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd");
-                    var periodo = fechaFinStr.Substring(5, 2); // MM
-                    var anio = fechaFinStr.Substring(0, 4);   // YYYY
+                    var periodo = fechaFinStr.Substring(5, 2); // MM (posición 6-7 en Python)
+                    var anio = fechaFinStr.Substring(0, 4);   // YYYY (posición 0-4 en Python)
                     
                     payload = new
                     {
@@ -897,14 +914,18 @@ namespace NetBcnModule.Services.Services
                         _loggingService.WriteInfo($"{timestamp} INFO: Response received successfully. Content length: {responseContent.Length}");
                         _loggingService.WriteInfo($"{timestamp} INFO: Response content: {responseContent}");
 
-                        // Parsear la respuesta JSON usando JavaScriptSerializer (nativo del framework)
+                        // Python: varrDataAux = json.loads(response.text)
                         var responseData = serializer.Deserialize<Dictionary<string, object>>(responseContent);
                         
-                        // Extraer los datos exactamente como en Python: varrDataAux["INVENTARIO"] o varrDataAux["CECO"]
+                        // Python: if ItpInfo == "INVENTARIO": varrData = varrDataAux["INVENTARIO"]
+                        // Python: else: varrData = varrDataAux["CECO"]
                         if (infoType == "INVENTARIO" && responseData.ContainsKey("INVENTARIO"))
                         {
                             var inventoryArray = responseData["INVENTARIO"] as object[];
-                            var inventoryData = ConvertArrayToQueryResult(inventoryArray, "InventarioBCN,InventarioECC,InventarioS4H");
+                            // Python: opciones 04 y 06 usan INVENTARIO
+                            // Columnas según el mapeo en GetAresPropertyMapping
+                            var inventoryData = ConvertArrayToQueryResult(inventoryArray, "Centro Logístico,Almacén,Material,Inventario BCN,UM BCN,Inventario ECC,UM ECC,Diferencia BCN-ECC,Inventario S4H,UM S4H");
+                            // Python: vMsg = vtimestamp + " INFO: Envio exitoso del Registro " + vTransaccionOrigen + " (estado: 200)!!!"
                             _loggingService.WriteInfo($"{timestamp} INFO: Envio exitoso del Registro {transaccionOrigen} (estado: 200)!!!");
                             _loggingService.WriteInfo($"{timestamp} INFO: ARES {transaccionOrigen}: successful response with {inventoryData.Data?.Count ?? 0} inventory records");
                             return inventoryData;
@@ -912,13 +933,17 @@ namespace NetBcnModule.Services.Services
                         else if (infoType == "CECO" && responseData.ContainsKey("CECO"))
                         {
                             var costArray = responseData["CECO"] as object[];
-                            var costData = ConvertArrayToQueryResult(costArray, "Item,ID Registro Costo,Fecha Contabilización,Texto Movimiento,Tipo Objeto Costo,ID Objeto Costo,ID Valor Estadístico,Nombre Producto,UM,Valor Contabilizado,JSON Movimiento");
+                            // Python: opciones 05 y 07 usan CECO
+                            // Columnas según el mapeo en GetAresPropertyMapping
+                            var costData = ConvertArrayToQueryResult(costArray, "ID Registro Costo,Fecha Contabilización,Texto Movimiento,Tipo Objeto Costo,ID Objeto Costo,ID Valor Estadístico,Nombre Producto,UM,Valor Contabilizado,JSON Movimiento");
+                            // Python: vMsg = vtimestamp + " INFO: Envio exitoso del Registro " + vTransaccionOrigen + " (estado: 200)!!!"
                             _loggingService.WriteInfo($"{timestamp} INFO: Envio exitoso del Registro {transaccionOrigen} (estado: 200)!!!");
                             _loggingService.WriteInfo($"{timestamp} INFO: ARES {transaccionOrigen}: successful response with {costData.Data?.Count ?? 0} cost records");
                             return costData;
                         }
                         else
                         {
+                            // Python: vMsg = vtimestamp + " ERROR: Estado: " +str(vCode) + " - " + vTransaccionOrigen + " \n"
                             _loggingService.WriteWarning($"{timestamp} WARNING: No se encontraron datos de {infoType} en la respuesta. Keys disponibles: {string.Join(", ", responseData.Keys)}");
                             return new QueryResult
                             {
@@ -930,7 +955,9 @@ namespace NetBcnModule.Services.Services
                     }
                     catch (System.Net.WebException webEx)
                     {
-                        // Manejo de errores exactamente como en Python
+                        // Python: except requests.ConnectionError:
+                        // Python: vMsg = vtimestamp + " ERROR: Estado: 400 - No se pudo conectar con el servidor. Asegurese de que el servidor este en funcionamiento.\n"
+                        // Python: vCode = 400
                         string errorMessage;
                         int errorCode;
                         
@@ -939,11 +966,17 @@ namespace NetBcnModule.Services.Services
                             errorMessage = $"{timestamp} ERROR: Estado: 400 - No se pudo conectar con el servidor. Asegurese de que el servidor este en funcionamiento.";
                             errorCode = 400;
                         }
+                        // Python: except requests.Timeout:
+                        // Python: vMsg = vtimestamp + " ERROR: Estado: 500 - Se agotó el tiempo de espera de la solicitud. Verifique su conexión a Internet o vuelva a intentarlo más tarde.\n"
+                        // Python: vCode = 500
                         else if (webEx.Status == WebExceptionStatus.Timeout)
                         {
                             errorMessage = $"{timestamp} ERROR: Estado: 500 - Se agotó el tiempo de espera de la solicitud. Verifique su conexión a Internet o vuelva a intentarlo más tarde.";
                             errorCode = 500;
                         }
+                        // Python: except requests.exceptions.HTTPErrorn as e:
+                        // Python: vMsg = vtimestamp + " ERROR: Se produjo el siguiente : " + e + "\n"
+                        // Python: vCode = 0
                         else
                         {
                             errorCode = 0;

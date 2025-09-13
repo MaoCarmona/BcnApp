@@ -58,7 +58,7 @@ namespace NetBcnModule.Services.Models
         public string NbProdLogDestino { get; set; }
         public decimal VlContable { get; set; }
         public string IdUM { get; set; }
-        public string IdCentroCosto { get; set; }
+        public string nbCentroCosto { get; set; }
         public string IdAtrCalidad { get; set; }
         public string VlAtrCalidad { get; set; }
         public string IdUMAtrCalidad { get; set; }

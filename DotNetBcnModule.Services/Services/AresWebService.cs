@@ -80,6 +80,7 @@ namespace NetBcnModule.Services.Services
                 var serializer = new JavaScriptSerializer();
                 var jsonPayload = serializer.Serialize(payload);
                 var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+                
 
                 var authToken = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{password}"));
                 _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authToken);
@@ -128,7 +129,8 @@ namespace NetBcnModule.Services.Services
             {
                 response.Success = false;
                 response.StatusCode = 500;
-                response.Message = $"{timestamp} ERROR: Estado: 500 - Se agotó el tiempo de espera de la solicitud. Verifique su conexión a Internet o vuelva a intentarlo más tarde.\n";
+                // response.Message = $"{timestamp} ERROR: Estado: 500 - Se agotó el tiempo de espera de la solicitud. Verifique su conexión a Internet o vuelva a intentarlo más tarde.\n";
+                response.Message = ex.Message;
                 _loggingService.WriteError($"ARES timeout error: {ex.Message}");
             }
             catch (Exception ex)

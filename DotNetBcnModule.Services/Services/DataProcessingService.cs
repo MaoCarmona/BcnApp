@@ -26,6 +26,48 @@ namespace NetBcnModule.Services.Services
         }
 
         /// <summary>
+        /// Format decimal values to always show 3 decimal places (.000 if no decimals)
+        /// </summary>
+        private string FormatDecimalWith3Places(object value)
+        {
+            if (value == null)
+                return "0.000";
+
+            if (value is decimal decimalValue)
+            {
+                return decimalValue.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+            
+            if (value is double doubleValue)
+            {
+                return doubleValue.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+            
+            if (value is float floatValue)
+            {
+                return floatValue.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+            
+            if (value is int intValue)
+            {
+                return intValue.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+            
+            if (value is long longValue)
+            {
+                return longValue.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+
+            // Try to parse as decimal
+            if (decimal.TryParse(value.ToString(), out decimal parsedDecimal))
+            {
+                return parsedDecimal.ToString("0.000", CultureInfo.InvariantCulture);
+            }
+
+            return value.ToString();
+        }
+
+        /// <summary>
         /// Converts data records to XML format
         /// </summary>
         public List<string> ConvertToXml(IEnumerable<object> dataRecords, string tagName)
@@ -83,6 +125,13 @@ namespace NetBcnModule.Services.Services
                     recordXml.Append($"<dtMovimientoIni>{dtMovimientoIni?.ToString("yyyy-MM-ddTHH:mm:ss") ?? ((dynamic)record).dtMovimientoIni}</dtMovimientoIni>");
                     recordXml.Append($"<dtMovimientoFin>{dtMovimientoFin?.ToString("yyyy-MM-ddTHH:mm:ss") ?? ((dynamic)record).dtMovimientoFin}</dtMovimientoFin>");
                 }
+                else if (tagName == "REGBALANCE")
+                {
+                    var dtMovimientoIni = ((dynamic)record).dtMovimientoIni as DateTime?;
+                    var dtMovimientoFin = ((dynamic)record).dtMovimientoFin as DateTime?;
+                    recordXml.Append($"<dtMovimientoIni>{dtMovimientoIni?.ToString("yyyy-MM-ddTHH:mm:ss") ?? ((dynamic)record).dtMovimientoIni}</dtMovimientoIni>");
+                    recordXml.Append($"<dtMovimientoFin>{dtMovimientoFin?.ToString("yyyy-MM-ddTHH:mm:ss") ?? ((dynamic)record).dtMovimientoFin}</dtMovimientoFin>");
+                }
                 else
                 {
                     var properties = record.GetType().GetProperties();
@@ -99,11 +148,11 @@ namespace NetBcnModule.Services.Services
                         string valueStr;
                         if (value is DateTime dateValue)
                         {
-                            valueStr = dateValue.ToString("yyyy-MM-ddTHH:mm:ss");
+                            valueStr = dateValue.ToString("yyyy-MM-dd HH:mm:ss");
                         }
                         else if (value is decimal decimalValue)
                         {
-                            valueStr = Math.Round(decimalValue, 3).ToString(CultureInfo.InvariantCulture);
+                            valueStr = FormatDecimalWith3Places(decimalValue);
                         }
                         else
                         {
@@ -143,8 +192,8 @@ namespace NetBcnModule.Services.Services
         /// <param name="userAudit">User performing the audit</param>
         /// <param name="source">Source system (GRB)</param>
         /// <param name="tagQuery">Query tag identifier</param>
-        /// <returns>Processing result</returns>
-        public async Task<bool> ProcessXmlItemsAsync(List<string> xmlItems, string userAudit, string source, string tagQuery)
+        /// <returns>Processing result with error information</returns>
+        public async Task<(bool Success, string ErrorMessage)> ProcessXmlItemsAsync(List<string> xmlItems, string userAudit, string source, string tagQuery)
         {
             try
             {
@@ -169,18 +218,59 @@ namespace NetBcnModule.Services.Services
                     var escapedXml = xmlItem.Replace("'", "''");
                     var sql = $"EXEC BCN.spAppIntegrarProcesarInfo '{userAudit}', '{source}', '{tagQuery}', '{escapedXml}';";
                     
-                    _loggingService.WriteInfo($"{timestamp} Info: Ejecutando procedimiento almacenado en BCN database: {sql}");
-                    await _databaseService.ExecuteAsync(sql);
+                    _loggingService.WriteInfo($"{timestamp} Info: Ejecutando procedimiento almacenado en BCN database");
+                    _loggingService.WriteInfo($"=== SQL EJECUTADO ===");
+                    _loggingService.WriteInfo($"Stored Procedure: BCN.spAppIntegrarProcesarInfo");
+                    _loggingService.WriteInfo($"Usuario: {userAudit}");
+                    _loggingService.WriteInfo($"Fuente: {source}");
+                    _loggingService.WriteInfo($"Tag Query: {tagQuery}");
+                    _loggingService.WriteInfo($"XML Escapado (primeros 200 chars): {(escapedXml.Length > 200 ? escapedXml.Substring(0, 200) + "..." : escapedXml)}");
+                    _loggingService.WriteInfo($"SQL Completo: {sql}");
+                    _loggingService.WriteInfo($"=== FIN SQL ===");
                     
-                    _loggingService.WriteInfo($"{timestamp} Info: Procesado paquete {i + 1} en BCN database");
+                    try
+                    {
+                        await _databaseService.ExecuteAsync(sql);
+                        _loggingService.WriteInfo($"{timestamp} Info: Procesado paquete {i + 1} en BCN database");
+                    }
+                    catch (Exception packageEx)
+                    {
+                        // Handle specific subquery error for flows
+                        if (packageEx.Message.Contains("Subquery returned more than 1 value") && tagQuery == "FLUOPERAORA")
+                        {
+                            _loggingService.WriteWarning($"Error específico de subconsulta en flujos operativos (paquete {i + 1}): {packageEx.Message}");
+                            _loggingService.WriteWarning($"Continuando con el siguiente paquete...");
+                            
+                            // Log the problematic XML for debugging
+                            _loggingService.WriteWarning($"XML problemático (primeros 500 chars): {(xmlItem.Length > 500 ? xmlItem.Substring(0, 500) + "..." : xmlItem)}");
+                            
+                            // Continue processing other packages instead of failing completely
+                            continue;
+                        }
+                        else
+                        {
+                            // Re-throw other errors
+                            throw;
+                        }
+                    }
                 }
 
-                return true;
+                return (true, null);
             }
             catch (Exception ex)
             {
+                var errorMessage = $"Error en la base de datos: {ex.Message}";
                 _loggingService.WriteError($"Error processing XML items on BCN database: {ex.Message}");
-                return false;
+                
+                // Log more detailed error information
+                if (ex.InnerException != null)
+                {
+                    _loggingService.WriteError($"Inner Exception: {ex.InnerException.Message}");
+                    errorMessage += $"\nExcepción interna: {ex.InnerException.Message}";
+                }
+                
+                _loggingService.WriteError($"Stack Trace: {ex.StackTrace}");
+                return (false, errorMessage);
             }
         }
 
@@ -193,7 +283,8 @@ namespace NetBcnModule.Services.Services
             string userAudit,
             DateTime dateFrom,
             DateTime dateTo,
-            bool useInitialDate = false)
+            bool useInitialDate = false,
+            bool viewDataIntegrar = false)
         {
             var result = new IntegrationResult();
             var source = "GRB"; // Same as Python
@@ -231,15 +322,23 @@ namespace NetBcnModule.Services.Services
                         tagQuery = "INVOPERROMSS";
                         xmlTag = "Inventarios";
                         // For inventory queries, use the date selection logic
+                        // RN05: ROMSS Inventario Final - aumentar 1 segundo a Fecha Final
                         var romssInventoryDate = useInitialDate ? dateFrom : dateTo.AddSeconds(1);
-                        _loggingService.WriteInfo($"ROMSS Inventory: using romssInventoryDate={romssInventoryDate} (useInitialDate={useInitialDate})");
+                        _loggingService.WriteInfo($"ROMSS Inventory: using romssInventoryDate={romssInventoryDate:yyyy-MM-dd HH:mm:ss} (useInitialDate={useInitialDate})");
+                        _loggingService.WriteInfo($"ROMSS Inventory: original dateTo={dateTo:yyyy-MM-dd HH:mm:ss}, after AddSeconds(1)={dateTo.AddSeconds(1):yyyy-MM-dd HH:mm:ss}");
                         data = await queriesService.GetRomssInventoryAsync(romssInventoryDate);
                         break;
 
                     case "05": // ROMSS: Movements
                         tagQuery = "MOVOPERROMSS";
                         xmlTag = "Movimientos";
-                        data = await queriesService.GetRomssMovementsAsync(dateFrom, dateTo);
+                        // Use dates as-is for ROMSS movements (no +1 second needed)
+                        // Python: vFechaAux = datetime.strptime(dtFechaFin, vdtFormato) + timedelta(seconds = 1)
+                        // But user specification requires: dtMovimientoIni >= '2025-08-03 00:00:00' AND dtMovimientoIni <= '2025-08-03 23:59:59'
+                        var romssMovementsDateTo = viewDataIntegrar ? dateTo : dateTo.AddSeconds(1);
+                        _loggingService.WriteInfo($"ROMSS Movements: using dateFrom={dateFrom:yyyy-MM-dd HH:mm:ss}, dateTo={dateTo:yyyy-MM-dd HH:mm:ss}");
+
+                        data = await queriesService.GetRomssMovementsAsync(dateFrom, romssMovementsDateTo);
                         break;
 
                     case "06": // BCN: Inventory Photo
@@ -276,7 +375,15 @@ namespace NetBcnModule.Services.Services
                     result.Success = true;
 
                     // Process XML items through stored procedure
-                    await ProcessXmlItemsAsync(result.XmlItems, userAudit, source, tagQuery);
+                    var processResult = await ProcessXmlItemsAsync(result.XmlItems, userAudit, source, tagQuery);
+                    
+                    // Check if XML processing failed
+                    if (!processResult.Success)
+                    {
+                        result.Success = false;
+                        result.Message = processResult.ErrorMessage;
+                        return result;
+                    }
                 }
                 else
                 {
@@ -320,7 +427,7 @@ namespace NetBcnModule.Services.Services
                         tagQuery = "INVCONSBCN";
                         xmlTag = "Inventarios";
                         // For inventory queries, use the date selection logic
-                        var consolidatedInventoryDate = useInitialDate ? dateFrom.AddMinutes(-1) : dateTo.AddSeconds(-59);
+                        var consolidatedInventoryDate = useInitialDate ? dateFrom : dateTo;
                         _loggingService.WriteInfo($"BCN Consolidated Inventory: using consolidatedInventoryDate={consolidatedInventoryDate} (useInitialDate={useInitialDate})");
                         data.Add(new { dtInventario = consolidatedInventoryDate });
                         break;
@@ -354,17 +461,24 @@ namespace NetBcnModule.Services.Services
                         tagQuery = "INVFOTOCONSBCN";
                         xmlTag = "Inventarios";
                         // For inventory queries, use the date selection logic
-                        var consolidatedPhotoDate = useInitialDate ? dateFrom.AddMinutes(-1) : dateTo.AddSeconds(-59);
+                        var consolidatedPhotoDate = useInitialDate ? dateFrom : dateTo;
                         _loggingService.WriteInfo($"BCN Consolidated Inventory Photo: using consolidatedPhotoDate={consolidatedPhotoDate} (useInitialDate={useInitialDate})");
                         data.Add(new { dtInventario = consolidatedPhotoDate });
                         break;
 
-                    case "07": // BCN: Balance Rule
-                        result.Success = false;
-                        result.Message = $"Esta opción BCN: Balance Rule no esta disponible para ejecucion: {infoType}";
-                        return result;
+                    case "07": // BCN: Corregir Balance Signo Contrario
+                        tagQuery = "RNSIGCONTRARIO";
+                        xmlTag = "Movimientos";
+                        data.Add(new { dtMovimientoIni = dateFrom, dtMovimientoFin = dateTo });
+                        break;
 
-                    case "08": // BCN: Balance Difference
+                    case "08": // BCN: Aplicar Regla de Balance
+                        tagQuery = "REGBALANCE";
+                        xmlTag = "Movimientos";
+                        data.Add(new { dtMovimientoIni = dateFrom, dtMovimientoFin = dateTo });
+                        break;
+
+                    case "09": // BCN: Diferencia Balance
                         tagQuery = "DIFBALANCE";
                         xmlTag = "Movimientos";
                         data.Add(new { dtMovimientoIni = dateFrom, dtMovimientoFin = dateTo });
@@ -380,8 +494,31 @@ namespace NetBcnModule.Services.Services
                 result.RecordCount = data.Count;
                 result.Success = true;
 
+                // Log the generated XML for debugging (especially for options 07 and 08)
+                _loggingService.WriteInfo($"=== XML GENERADO PARA {tagQuery} ===");
+                _loggingService.WriteInfo($"Total de paquetes XML: {result.XmlItems.Count}");
+                _loggingService.WriteInfo($"Registros procesados: {result.RecordCount}");
+                
+                for (int i = 0; i < result.XmlItems.Count; i++)
+                {
+                    _loggingService.WriteInfo($"=== PAQUETE XML {i + 1} ===");
+                    _loggingService.WriteInfo($"Tamaño: {result.XmlItems[i].Length} caracteres");
+                    _loggingService.WriteInfo($"Contenido completo:");
+                    _loggingService.WriteInfo(result.XmlItems[i]);
+                    _loggingService.WriteInfo($"=== FIN PAQUETE XML {i + 1} ===");
+                }
+                _loggingService.WriteInfo($"=== FIN XML GENERADO PARA {tagQuery} ===");
+
                 // Process XML items through stored procedure
-                await ProcessXmlItemsAsync(result.XmlItems, userAudit, source, tagQuery);
+                var processResult = await ProcessXmlItemsAsync(result.XmlItems, userAudit, source, tagQuery);
+                
+                // Check if XML processing failed
+                if (!processResult.Success)
+                {
+                    result.Success = false;
+                    result.Message = processResult.ErrorMessage;
+                    return result;
+                }
             }
             catch (Exception ex)
             {
@@ -448,6 +585,11 @@ namespace NetBcnModule.Services.Services
             }
 
             return result;
+        }
+
+        public Task<IntegrationResult> ProcessOperationalInfoAsync(string infoType, IQueriesService queriesService, string userAudit, DateTime dateFrom, DateTime dateTo, bool useInitialDate = false)
+        {
+            throw new NotImplementedException();
         }
     }
 }

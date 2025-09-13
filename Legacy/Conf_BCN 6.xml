@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <CONF_COMPLEMENTO_ROMSSGRB>
- <Configuraciones>
+ <Configuraciones> 
    <parametros>
       <getInfoURLSAPECCECP Descripcion = "Información del endpoint de SAP ECC ECP">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZFVzciI6ImNvbnNfYXJlc2FwaSIsInB3VXNyIjoiSC1tc1FhdGVwZUsyIiwidHhVUkwiOiJodHRwOi8vdmhlY3BwbzJjaS5oZWMuZWNvcGV0cm9sLmNvbS5jbzo1MDAwMC9SRVNUQWRhcHRlci9hb3JhLyIsInR4TWV0b2RvSW52ZW50YXJpbyI6ImNvbXBhcmFjaW9uSW52ZW50YXJpbyIsInR4TWV0b2RvQ29zdG8iOiJjb21wYXJhdGl2b0Nvc3RvcyIsImFyckNlbkxvZyI6W3siTm9tYnJlIjoiMjAwMCJ9LHsiTm9tYnJlIjoiMzUwMSJ9LHsiTm9tYnJlIjoiNDEzMCJ9XSwiYXJyQWxtTG9nIjpbeyJOb21icmUiOiJNMDAxIn0seyJOb21icmUiOiJTMDAxIn0seyJOb21icmUiOiJUMDAxIn0seyJOb21icmUiOiJBMDAxIn0seyJOb21icmUiOiJBMDAyIn0seyJOb21icmUiOiJDMDAyIn0seyJOb21icmUiOiJGMDAxIn1dLCJUUyI6IjIwMjUtMDgtMDYgMDc6MjY6MjE6MzU3MDU2In0.zDweSWYiD4EGoi9CzLlH0mbjTMXxtvbyJjrqmfpj05g</getInfoURLSAPECCECP>
       <getInfoURLARES Descripcion = "Información del endpoint de ARES">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZFVzciI6ImFvcmFncmIiLCJwd1VzciI6IiRhMHJhJGdyYiQyMDE5IiwidHhVUkwiOiJodHRwczovL2FldWVjcGFhb3JhYjAxZC5yZWQuZWNvcGV0cm9sLmNvbS5jby9JbnRlZ3JhY2lvbkJJQ0FPUkEvQXBpLyIsInR4TWV0b2RvSW52ZW50YXJpbyI6IkNhcmdhckludmVudGFyaW9zQklDIiwidHhNZXRvZG9Nb3ZpbWllbnRvIjoiQ2FyZ2FyTW92aW1pZW50b3NCSUMiLCJ0eE1ldG9kb0Nvc3RvIjoiQ2FyZ2FyQ29zdG9zQklDIiwiVFMiOiIyMDI1LTAzLTI3IDA3OjA0OjE2OjgwNjY3NCJ9.vlqhXQZ47NVLE76jiYQ7E5PIPWmmy9f-VxxTyYyEQjA</getInfoURLARES>
@@ -12,7 +12,8 @@
       <getInfoDBROMSSQA Descripcion = "Informacion de conectividad ROMSS Calidad">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXJ2aWRvckRCIjoiMTAuMjI4LjEuMTAyIiwiUHVlcnRvREIiOjQ5MDAwLCJVc3JEQiI6Im9mZnNpdGUiLCJQd2REQiI6Im9mZnNpdGUiLCJCYXNlRGF0b3MiOiJvZmZzaXRlIiwiVFMiOiIyMDI1LTAzLTI1IDEwOjEwOjQ0Ojg2MjI5NiJ9.BnUoVYQJwyuPPWLSqQEFE269oQ4r5Qk5RmiTb_eCJyA</getInfoDBROMSSQA>
       <getInfoDBAORAQAS Descripcion = "Informacion de conectividad AORA QAS">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXJ2aWRvckRCIjoiMTAuMjMyLjE2LjkiLCJQdWVydG9EQiI6MTQzMywiVXNyREIiOiJfUDAxQVJFU0NPTlNVTFRBUSIsIlB3ZERCIjoiOWlrQi5lal85LWE4YVhlckRHSFRxZFdnIiwiQmFzZURhdG9zIjoiYW9yYV9ncmIiLCJUUyI6IjIwMjUtMDctMTkgMDk6MDA6MTM6MjI1MDQ0In0.gCzmKQP0u06P-EUGtrQlkIszUFN8WLOLMBjZkj2q8gE</getInfoDBAORAQAS>
       <getInfoDBAORA Descripcion = "Informacion de conectividad AORA PRD">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXJ2aWRvckRCIjoiMTAuMjMxLjY0LjI1IiwiUHVlcnRvREIiOjE0MzMsIlVzckRCIjoiX1AwMUFSRVNDT05TVUxUQVAiLCJQd2REQiI6ImJmMWdrYVNmODQ4OTNxekU2OVJ1IiwiQmFzZURhdG9zIjoiYW9yYV9ncmIiLCJUUyI6IjIwMjUtMDctMjEgMTU6MTQ6MTQ6ODk4Nzg4In0.rm6tgYd8xQDm6EKLnG4SpqkCO7Wprk3cCQH9jCaZcHk</getInfoDBAORA>
-      <getInfoDBBCN Descripcion = "Informacion de conectividad de BCN">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXJ2aWRvckRCIjoiNjcuNzMuMjQxLjE0MiIsIlB1ZXJ0b0RCIjo1MjMzMywiVXNyREIiOiJfUDAxQkNOR1JCUSIsIlB3ZERCIjoiamVybzA3MDckIiwiQmFzZURhdG9zIjoiZGJhZXVlY3BxYXNiY25ncmIiLCJUUyI6IjIwMjUtMDMtMDUgMDY6NTI6MTA6NzY2MjY5In0.ziyLw209uE8hB_HsyldH38JcpNgazegC_TK3cMbk_Kk</getInfoDBBCN>
+      <getInfoDBBCNQAS Descripcion = "Informacion de conectividad de BCN">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXJ2aWRvckRCIjoiMTAuMjMyLjE2LjkiLCJQdWVydG9EQiI6MTQzMywiVXNyREIiOiJhcmVzYmNucWFzIiwiUHdkREIiOiJsdncxS3VWeHYlWF9VKlppQHFCR0xQVE8iLCJCYXNlRGF0b3MiOiJhb3JhX2dyYiIsIlRTIjoiMjAyNS0wOC0yMCAxNDowMTozMDo1MjE3NzQifQ.r9FiQIoCL_YZaPsBwiMm2yUdUJJU4-IZ7LsmcaEdacU</getInfoDBBCNQAS>
+      <getInfoDBBCN Descripcion = "Informacion de conectividad de BCN ambiente Desarrollo">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXJ2aWRvckRCIjoiNjcuNzMuMjQxLjE0MiIsIlB1ZXJ0b0RCIjo1MjMzMywiVXNyREIiOiJfUDAxQkNOR1JCUSIsIlB3ZERCIjoiamVybzA3MDckIiwiQmFzZURhdG9zIjoiZGJhZXVlY3BxYXNiY25ncmIiLCJUUyI6IjIwMjUtMDMtMDUgMDY6NTI6MTA6NzY2MjY5In0.ziyLw209uE8hB_HsyldH38JcpNgazegC_TK3cMbk_Kk</getInfoDBBCN>
    </parametros>
    <Querys>     
      <!-- Query para Consultar Inventarios en AORA -->
@@ -55,27 +56,27 @@ where DVRMASS.TIME_TAKEN = '[dtConsultaIni]']]>
      , CONVERT(DECIMAL(10, 2), DOREVENT.W_CORRCTED) wFuente
 	 , CONVERT(DECIMAL(10, 2), (DOREVENT.W_CORRCTED + DOREVENT.W_ADJ_SYS + DOREVENT.W_ADJ_USER)) wReconciliado
      , 'TM' AS wUM
-from DVRINTGM
-join PLOINSTR on PLOINSTR.DBINDEX = DVRINTGM.IND2INSTR
-join PCOIINTM on PCOIINTM.IND2OBJECT = PLOINSTR.DBINDEX 
-join DOREVENT on DOREVENT.IND2INSTR = PLOINSTR.DBINDEX
-join DLOEVENT on DLOEVENT.IND2INSTR = PLOINSTR.DBINDEX
-join PCOPPERM on PCOPPERM.IND2OBJECT = PCOIINTM.IND2SOURCE
-join PLOUNITS as P_EMISOR on P_EMISOR.DBINDEX = PCOPPERM.IND2SOURCE
-join PLOUNITS as P_RECEPTOR on P_RECEPTOR.DBINDEX = PCOPPERM.IND2DESTIN
-join GLOFEDST on GLOFEDST.DBINDEX = DOREVENT.IND2FEDSTK
-left join PCOIMASS as PC_EMISOR on PC_EMISOR.IND2SOURCE = P_EMISOR.DBINDEX and PC_EMISOR.TIME_END = '2038-01-01 00:00:00'
-left join DVRMASS as D_EMISOR on D_EMISOR.IND2INSTR = PC_EMISOR.IND2OBJECT and CONVERT(DATE,D_EMISOR.TIME_TAKEN) = CONVERT(DATE,DVRINTGM.TIME_TAKEN)
-left join GLOFEDST AS G_EMISOR on G_EMISOR.DBINDEX = D_EMISOR.IND2FEDSTK
-left join PCOIMASS as PC_RECEPTOR on PC_RECEPTOR.IND2SOURCE = P_RECEPTOR.DBINDEX and PC_RECEPTOR.TIME_END = '2038-01-01 00:00:00'
-left join DVRMASS as D_RECEPTOR on D_RECEPTOR.IND2INSTR = PC_RECEPTOR.IND2OBJECT and CONVERT(DATE,D_RECEPTOR.TIME_TAKEN) = CONVERT(DATE,DVRINTGM.TIME_TAKEN)
-left join GLOFEDST AS G_RECEPTOR on G_RECEPTOR.DBINDEX = D_RECEPTOR.IND2FEDSTK
-where 1 = 1
-AND rtrim(P_RECEPTOR.TAG) <> 'DC Perdidas Emisione'
-AND rtrim(GLOFEDST.TAG) NOT LIKE '%POLIE%' 
-AND CHARINDEX('-', rtrim(PLOINSTR.TAG)) = 0
-AND ((DOREVENT.V_CORRCTED + DOREVENT.V_ADJ_SYS + DOREVENT.V_ADJ_USER) + (DOREVENT.W_CORRCTED + DOREVENT.W_ADJ_SYS + DOREVENT.W_ADJ_USER)) > 0 
-AND DLOEVENT.TIME_END BETWEEN '[dtConsultaIni]' AND '[dtConsultaFin]']]>
+          from DVRINTGM
+          join PLOINSTR on PLOINSTR.DBINDEX = DVRINTGM.IND2INSTR
+          join PCOIINTM on PCOIINTM.IND2OBJECT = PLOINSTR.DBINDEX 
+          join DOREVENT on DOREVENT.IND2INSTR = PLOINSTR.DBINDEX
+          join DLOEVENT on DLOEVENT.IND2INSTR = PLOINSTR.DBINDEX
+          join PCOPPERM on PCOPPERM.IND2OBJECT = PCOIINTM.IND2SOURCE
+          join PLOUNITS as P_EMISOR on P_EMISOR.DBINDEX = PCOPPERM.IND2SOURCE
+          join PLOUNITS as P_RECEPTOR on P_RECEPTOR.DBINDEX = PCOPPERM.IND2DESTIN
+          join GLOFEDST on GLOFEDST.DBINDEX = DOREVENT.IND2FEDSTK
+          left join PCOIMASS as PC_EMISOR on PC_EMISOR.IND2SOURCE = P_EMISOR.DBINDEX and PC_EMISOR.TIME_END = '2038-01-01 00:00:00'
+          left join DVRMASS as D_EMISOR on D_EMISOR.IND2INSTR = PC_EMISOR.IND2OBJECT and CONVERT(DATE,D_EMISOR.TIME_TAKEN) = CONVERT(DATE,DVRINTGM.TIME_TAKEN)
+          left join GLOFEDST AS G_EMISOR on G_EMISOR.DBINDEX = D_EMISOR.IND2FEDSTK
+          left join PCOIMASS as PC_RECEPTOR on PC_RECEPTOR.IND2SOURCE = P_RECEPTOR.DBINDEX and PC_RECEPTOR.TIME_END = '2038-01-01 00:00:00'
+          left join DVRMASS as D_RECEPTOR on D_RECEPTOR.IND2INSTR = PC_RECEPTOR.IND2OBJECT and CONVERT(DATE,D_RECEPTOR.TIME_TAKEN) = CONVERT(DATE,DVRINTGM.TIME_TAKEN)
+          left join GLOFEDST AS G_RECEPTOR on G_RECEPTOR.DBINDEX = D_RECEPTOR.IND2FEDSTK
+          where 1 = 1
+          AND rtrim(P_RECEPTOR.TAG) <> 'DC Perdidas Emisione'
+          AND rtrim(GLOFEDST.TAG) NOT LIKE '%POLIE%' 
+          AND CHARINDEX('-', rtrim(PLOINSTR.TAG)) = 0
+          AND ((DOREVENT.V_CORRCTED + DOREVENT.V_ADJ_SYS + DOREVENT.V_ADJ_USER) + (DOREVENT.W_CORRCTED + DOREVENT.W_ADJ_SYS + DOREVENT.W_ADJ_USER)) > 0 
+          AND DLOEVENT.TIME_END BETWEEN '[dtConsultaIni]' AND '[dtConsultaFin]']]>
      </qryMOVOPERAORA>
        
      <!-- Query para Consultar los Flujos en AORA-->
@@ -306,9 +307,9 @@ AND a.AT_TIMESTAMP >= '[dtConsultaIni]'
 AND a.AT_TIMESTAMP <= '[dtConsultaFin]'
 AND (abs(a.AT_NSV) + abs(a.AT_NSW)) > 0
 UNION ALL
-SELECT CONCAT(CONVERT(VARCHAR(10), EOMONTH('[dtConsultaIni]'), 112), '-', Ta.E_ID) Tag
-     , CONVERT(DATETIME, EOMONTH('[dtConsultaIni]'), 120) dtMovIni
-     , DATEADD(second, 86399, CONVERT(DATETIME, EOMONTH('[dtConsultaIni]'), 120)) dtMovFin	
+SELECT Ta.AT_ID Tag
+     , Ta.AT_TIMESTAMP dtMovIni
+     , Ta.AT_TIMESTAMP dtMovFin	
      , 'PIEMS' tpCategoria
 	 , Ta.E_ID idRecOrigen
 	 , 'ALMACEN OPERATIVO' tpRecOrigen
@@ -327,19 +328,20 @@ SELECT CONCAT(CONVERT(VARCHAR(10), EOMONTH('[dtConsultaIni]'), 112), '-', Ta.E_I
 	 , 'N/A' uomPedido	
 	 , 0 cantPedido
          , 1 idMovSigno
-FROM ( SELECT t.E_ID
-	        , CONVERT(DECIMAL(10, 2), SUM(ABS(t.AT_NSV))) vFuente
-	        , CONVERT(DECIMAL(10, 2), SUM(ABS(t.AT_NSW*0.90718474))) wFuente
-            , MAX(t.AT_ID) AT_ID
+FROM ( SELECT t.AT_ID
+            , t.E_ID
+            , t.AT_TIMESTAMP
+	    , CONVERT(DECIMAL(10, 3), ABS(t.AT_NSV)) vFuente
+	    , CONVERT(DECIMAL(10, 3), ABS(t.AT_NSW*0.90718474)) wFuente
        FROM OFFSITE.offsite.ACC_TRANS t 
        WHERE 1 = 1
        AND t.AT_TYPE = 14  
-       AND t.AT_TIMESTAMP >= DATEADD(day, 1, convert(DATETIME, EOMONTH('[dtConsultaIni]', -1), 120)) -- Primer dia del Mes
-       AND t.AT_TIMESTAMP < DATEADD(day, 1, EOMONTH('[dtConsultaIni]')) -- Primer dia del Mes siguiente
-       GROUP BY t.E_ID
+       AND t.AT_TIMESTAMP >= '[dtConsultaIni]'
+       AND t.AT_TIMESTAMP < '[dtConsultaFin]'
 	   ) Ta 
 INNER JOIN OFFSITE.offsite.ACC_TRANS a ON (Ta.AT_ID = a.AT_ID)
-WHERE (Ta.vFuente + Ta.wFuente) <> 0
+WHERE 1 = 1
+AND Ta.vFuente >= 0.001
 UNION ALL
 SELECT mvi.OM_ID Tag
      , IIF (mvi.RN = 1, IIF(mvi.AOM_ACT_START_DT < '[dtConsultaIni]', CAST(DATEADD(DAY, -1, mvi.AOM_FINISH_DT) AS DATE), mvi.AOM_ACT_START_DT), mvf.AOM_FINISH_DT) dtMovIni
@@ -431,8 +433,8 @@ ORDER BY a.idRecProducto, a.nmRecAlmacen]]>
 
      <!-- Query para Consultar la Habilitacion Provisional de Inventario HPI -->
      <qryMOVHPIARES><![CDATA[SELECT b.IDMOVIMIENTOSAP Tag
-     , CONVERT(DATETIME2(0), DATEADD(DAY, -17, b.FECHAENVIO)) dtMovIni
-     , CONVERT(DATETIME2(0), DATEADD(DAY, -17, b.FECHAENVIO)) dtMovFin
+     , CONVERT(DATETIME2(0), b.FECHAENVIO) dtMovIni
+     , CONVERT(DATETIME2(0), b.FECHAENVIO) dtMovFin
      , IIF(a.TRANSACTION_ID = 521, 'HPI', 'DPI') tpCategoria 	             
      , b.TANQUE idRecOrigen
 	 , 'ALMACEN OPERATIVO' tpRecOrigen
@@ -451,14 +453,13 @@ ORDER BY a.idRecProducto, a.nmRecAlmacen]]>
 	 , 'N/A' uomPedido	
 	 , 0 cantPedido
          , 1 idMovSigno	   
-	 -- , IIF(a.TRANSACTION_ID = 521, 1, -1) idMovSigno	
 FROM XTHABILITACIONINVENTARIOROMSS a 
 INNER JOIN XTHABILITACIONINVENTARIOENVIOSSAP b ON (a.t_id = b.TANQUE AND a.C_DESC = b.PRODUCTO AND CONVERT(DATETIME2(0), a.FECHAENVIO) = CONVERT(DATETIME2(0), b.FECHAENVIO))
 where 1 = 1 
 AND a.MARCADOENVIO IS NOT NULL 
 AND CONVERT(DATE, b.FECHAENVIO) = CONVERT(DATE, '[dtConsultaIni]', 120)]]></qryMOVHPIARES>
 
-     <!-- Query para Consultar los Movimientos del del Balance Conciliado de Negocio -->
+     <!-- Query para Consultar los Movimientos del Balance Conciliado de Negocio -->
      <qryGETMOVIMIENTOSBCN><![CDATA[SELECT m.nbMovimientoTag, m.tpMovimientoCls, m.dtMovimientoIni, m.dtMovimientoFin, m.nmRecOrigen, m.nbProdOrigen, m.nmProdOrigen, m.nmRecDestino, m.nbProdDestino, m.nmProdDestino, m.vlCantVolFuente, m.vlCantVolReconciliado, m.vlCantVolConciliado, m.idUMCantVol, m.vlCantMasFuente, m.vlCantMasReconciliado, m.vlCantMasConciliado, m.idUMCantMas, m.nbAPI60, m.nbMuestra, m.numPedido, m.posPedido, m.nbAPI60, m.idUMPedido, m.nmEstado, m.dtCargado, m.nmUsrAuditoria
                                     , (CASE WHEN m.idCaso = 5 THEN 
 				     CONVERT( NVARCHAR(MAX),(SELECT b.idRecOrigen, b.nbMovimientoTag Tag, a.nbMultiplicador Signo, b.nmRecOrigen, b.idProdOrigen, b.nmProdOrigen, b.idRecDestino, b.nmRecDestino, b.idProdDestino, b.nmProdDestino, b.vlCantVolFuente, b.vlCantVolReconciliado, b.vlCantVolConciliado, b.idUMCantVol
@@ -480,29 +481,7 @@ AND CONVERT(DATE, b.FECHAENVIO) = CONVERT(DATE, '[dtConsultaIni]', 120)]]></qryM
 	  AND m.tpMovimientoCls [Filtro01] '[tpMovimiento]'	
      ]]>
      </qryGETMOVIMIENTOSBCN>
-     <qryGETBALANCECONSBCN><![CDATA[SELECT a.idRecurso, a.nbRecurso, a.nmRecurso, a.UM UMBalance
-     , ISNULL(InvIni.InvVolIni, 0) InvIniVol
-	 , ISNULL(MovEnt.vlVolEnt, 0) vlEntVol
-	 , ISNULL(MovSal.vlVolSal, 0) vlSalVol
-     , ISNULL(InvFin.InvVolFin, 0) InvFinVol 
-     , ((ISNULL(InvFin.InvVolFin, 0) + ISNULL(MovSal.vlVolSal, 0)) - (ISNULL(InvIni.InvVolIni, 0) + ISNULL(MovEnt.vlVolEnt, 0))) vlDesbalanceVol
-	 , 'BLS' UMVol
-     , ISNULL(InvIni.InvMasIni, 0) InvIniMas
-	 , ISNULL(MovEnt.vlMasEnt, 0) vlEntMas
-	 , ISNULL(MovSal.vlMasSal, 0) vlSalMas
-     , ISNULL(InvFin.InvMasFin, 0) InvFinMas
-     , ((ISNULL(InvFin.InvMasFin, 0) + ISNULL(MovSal.vlMasSal, 0)) - (ISNULL(InvIni.InvMasIni, 0) + ISNULL(MovEnt.vlMasEnt, 0))) vlDesbalanceMas
-	 , 'TM' UMMas
-FROM bcn.jerarquiarecursos_vw a
-LEFT JOIN (SELECT idRecAlmacen, CantVolTotal InvVolIni, CantMasTotal InvMasIni FROM bcn.mInventarios WHERE idCaso = 5 AND dtInventario = DATEADD(MINUTE, -1, '[dtConsultaIni]') ) InvIni ON  InvIni.idRecAlmacen = a.idRecurso
-LEFT JOIN (SELECT idRecAlmacen, CantVolTotal InvVolFin, CantMasTotal InvMasFin FROM bcn.mInventarios WHERE idCaso = 5 AND dtInventario = DATEADD(SECOND, -59, '[dtConsultaFin]') ) InvFin ON  InvFin.idRecAlmacen = a.idRecurso
-LEFT JOIN (SELECT idRecDestino, SUM(vlCantVolConciliado) vlVolEnt, SUM(vlCantMasConciliado) vlMasEnt FROM bcn.mMovimientos WHERE idCaso = 5 AND dtMovimientoIni >= '[dtConsultaIni]' AND dtMovimientoFin <= '[dtConsultaFin]' GROUP BY idRecDestino) MovEnt ON MovEnt.idRecDestino = a.idRecurso
-LEFT JOIN (SELECT idRecOrigen, SUM(vlCantVolConciliado) vlVolSal, SUM(vlCantMasConciliado) vlMasSal FROM bcn.mMovimientos WHERE idCaso = 5 AND dtMovimientoIni >= '[dtConsultaIni]' AND dtMovimientoFin <= '[dtConsultaFin]' GROUP BY idRecOrigen) MovSal ON MovSal.idRecOrigen = a.idRecurso
-WHERE 1 = 1
-AND a.Clase = 'BALANCE CONSOLIDADO'
-AND a.tpRecurso = '[tpMovimiento]'
-ORDER BY a.Orden, a.nmRecurso]]>
-     </qryGETBALANCECONSBCN>
+     <qryGETBALANCECONSBCN><![CDATA[SELECT * FROM BCN.getBalanceConsolidado('[dtConsultaIni]', '[dtConsultaFin]', '[tpMovimiento]')]]></qryGETBALANCECONSBCN>
 
      <!-- Query para Consultar la Foto del Inventario Consolidado en BCN -->
      <qryGETFOTOINVCONSBCN><![CDATA[SELECT a.dtInventario, a.nbRecSAP, mp.nmRecurso nmProducto
@@ -584,7 +563,7 @@ ORDER BY a.Orden, a.nmRecurso]]>
      , ml.nbProdLogDestino
      , ml.vlContable
      , ml.idUM 
-     , ml.idCentroCosto
+     , ml.nbCentroCosto
      , (CASE WHEN ml.vlAtrCalidad IS NULL THEN '' ELSE ml.idAtrCalidad END)  idAtrCalidad  
      , (CASE WHEN ml.vlAtrCalidad IS NULL THEN '' ELSE CAST(ml.vlAtrCalidad AS VARCHAR(15)) END) vlAtrCalidad  
      , (CASE WHEN ml.vlAtrCalidad IS NULL THEN '' ELSE ml.idUMAtrCalidad END) idUMAtrCalidad
@@ -718,9 +697,15 @@ LEFT JOIN (SELECT idRecDestino, SUM(vlCantVolConciliado) vlVolEnt, SUM(vlCantMas
 LEFT JOIN (SELECT idRecOrigen, SUM(vlCantVolConciliado) vlVolSal, SUM(vlCantMasConciliado) vlMasSal FROM bcn.mMovimientos WHERE idCaso = 4 AND dtMovimientoIni >= '[dtConsultaIni]' AND dtMovimientoFin <= '[dtConsultaFin]' GROUP BY idRecOrigen) MovSal ON MovSal.idRecOrigen = a.idRecurso
 WHERE 1 = 1
 AND InvFin.idRecProducto IS NOT NULL 
-ORDER BY InvFin.idRecProducto, a.nmRecurso]]>          
+ORDER BY InvFin.idRecProducto, a.nmRecurso]]>
      </qryBALANCEOPER>
 
+     <!-- Query para Consultar los Nodos que se le aplica la Regla de Balance en BCN-->
+     <qryREGBALANCE> 
+       <![CDATA[SELECT Ta.nbPrioridad, Ta.idRecBalance, BCN.getRecursoNm(Ta.idRecBalance) nmRecBalance, '[dtConsultaIni]' dtConsultaIni, '[dtConsultaFin]' dtConsultaFin
+                FROM ( SELECT idRecBalance, nbPrioridad FROM BCN.appMovBalance GROUP BY idRecBalance, nbPrioridad) Ta 
+                ORDER BY Ta.nbPrioridad]]>
+     </qryREGBALANCE>
    </Querys>
   </Configuraciones>
 </CONF_COMPLEMENTO_ROMSSGRB>

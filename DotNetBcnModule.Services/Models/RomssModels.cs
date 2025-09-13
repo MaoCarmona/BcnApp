@@ -41,6 +41,7 @@ namespace NetBcnModule.Services.Models
         public string IdRecDestino { get; set; }
         public string TpRecDestino { get; set; }
         public string IdProdDestino { get; set; }
+        public string NmProdDestino { get; set; }
         public decimal VFuente { get; set; }
         public string VUM { get; set; }
         public decimal WFuente { get; set; }

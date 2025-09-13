@@ -9,6 +9,14 @@
 bin/
 obj/
 
+# Paquetes NuGet
+packages/
+*.nupkg
+# Paquetes NuGet descargados
+**/packages/*
+# Paquetes NuGet de usuario
+*.snupkg
+
 # Archivos de publicación
 publish/
 *.Publish.xml
